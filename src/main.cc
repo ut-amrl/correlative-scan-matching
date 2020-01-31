@@ -69,14 +69,18 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
       // Load all the point clouds into memory.
       sensor_msgs::LaserScanPtr laser_scan =
               message.instantiate<sensor_msgs::LaserScan>();
+      printf("here-1\n");
       if (laser_scan != nullptr) {
+        printf("here0\n");
         // Process the laser scan
         // check if the timestamp lines up
         double scan_time = laser_scan->header.stamp.sec + laser_scan->header.stamp.nsec * 1e-9;
 
-        if (scan_time == base_timestamp) {
+        if (abs(scan_time - base_timestamp) <= __DBL_EPSILON__) {
+          printf("HERE1\n");
           baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
-        } else if (scan_time == match_timestamp) {
+        } else if (abs(scan_time - match_timestamp) <= __DBL_EPSILON__) {
+          printf("HERE2\n");
           matchCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
         }
       }
@@ -101,13 +105,13 @@ void corr_scan_match_callback(const CorrScanMatchInputMsgConstPtr& msg_ptr) {
 int main(int argc, char** argv) {
   google::InitGoogleLogging(*argv);
   google::ParseCommandLineFlags(&argc, &argv, false);
-  ros::init(argc, argv, "correlative_scan_matcher");
-  ros::NodeHandle n;
   signal(SIGINT, SignalHandler);
   // Load and pre-process the data.
-  if (FLAGS_bag_file.compare("") != 0 && FLAGS_base_timestamp != 0.0 && FLAGS_match_timestamp != 0.0) {
+  if (FLAGS_bag_file.compare("") != 0 && FLAGS_lidar_topic.compare("") != 0 && FLAGS_base_timestamp != 0.0 && FLAGS_match_timestamp != 0.0) {
     scan_match_bag_file(FLAGS_bag_file.c_str(), FLAGS_base_timestamp, FLAGS_match_timestamp);
   } else if(FLAGS_scan_match_topic.compare("") != 0) {
+    ros::init(argc, argv, "correlative_scan_matcher");
+    ros::NodeHandle n;
     std::cout << "Waiting for Point Cloud input" << std::endl;
     ros::Subscriber hitl_sub = n.subscribe(FLAGS_scan_match_topic, 10, corr_scan_match_callback);
     ros::spin();
