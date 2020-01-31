@@ -30,9 +30,9 @@ void corr_scan_match_callback(const CorrScanMatchInputMsgConstPtr& msg_ptr) {
   const CorrScanMatchInputMsg msg = *msg_ptr;
   PointCloud2 base = msg.base_cloud;
   PointCloud2 match = msg.match_cloud;
-  vector<Vector2f> baseCloud = pointcloud_helpers::PointCloudToVector(base);
-  vector<Vector2f> matchCloud = pointcloud_helpers::PointCloudToVector(match);
-  printf("Successfully conveted point clouds to vectors");
+  vector<Vector2f> baseCloud = pointcloud_helpers::RosCloudToPointCloud(base);
+  vector<Vector2f> matchCloud = pointcloud_helpers::RosCloudToPointCloud(match);
+  printf("Successfully converted point clouds");
 }
 
 int main(int argc, char** argv) {
