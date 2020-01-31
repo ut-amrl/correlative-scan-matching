@@ -13,16 +13,8 @@
 
 using Eigen::Vector2f;
 using sensor_msgs::PointCloud2;
-using ros::Publisher;
 
 namespace pointcloud_helpers {
-  void InitPointcloud(PointCloud2* point);
-  void PushBackBytes(float val, sensor_msgs::PointCloud2& ptr);
-  void PublishPointcloud(const std::vector<Vector2f>& points,
-                         PointCloud2& point_cloud,
-                         Publisher& pub);
-  std::vector<Vector2f>
-  LaserScanToPointCloud(sensor_msgs::LaserScan &laser_scan, double max_range);
-
+  std::vector<Vector2f> PointCloudToVector(sensor_msgs::PointCloud2 &cloud);
 };
 #endif // SRC_POINTCLOUD_HELPERS_H_
