@@ -1,0 +1,21 @@
+<package>
+  <description brief="Correlative Scan Matching Implementation">
+     Implementation of Correlative Scan Matching
+  </description>
+  <name>csm</name>
+  <author>John Bachman and Kavan Sikand</author>
+  <license>MIT</license>
+  <review status="unreviewed" notes=""/>
+  <url></url>
+  <depend package="std_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="roscpp"/>
+  <depend package="rosbag"/>
+  <depend package="tf"/>
+  <depend package="image_transport"/>
+
+</package>
+
+
