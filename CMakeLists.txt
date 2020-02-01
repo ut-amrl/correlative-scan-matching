@@ -6,7 +6,11 @@ MESSAGE(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 MESSAGE(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 MESSAGE(STATUS "Arch: ${CMAKE_SYSTEM_PROCESSOR}")
 
-SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Werror -Wno-error=deprecated-copy")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Werror")
+
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9)
+    SET(CMAKE_CXX_FLAGS "-Wno-error=deprecated-copy")
+ENDIF()
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "Release")
     option(TESTING "Build tests" OFF)
@@ -22,7 +26,6 @@ FIND_PACKAGE(Ceres REQUIRED)
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 FIND_PACKAGE(OpenCV REQUIRED)
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
-FIND_PACKAGE(OpenMP REQUIRED)
 
 INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
@@ -39,7 +42,7 @@ SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 rosbuild_genmsg()
 
-SET(libs roslib roscpp rosbag console_bridge cv_bridge gflags glog boost_system m OpenMP::OpenMP_CXX X11)
+SET(libs roslib roscpp rosbag console_bridge cv_bridge gflags glog boost_system m X11)
 
 ROSBUILD_ADD_EXECUTABLE(correlative_scan_matcher
                         src/main.cc
