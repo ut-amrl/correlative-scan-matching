@@ -79,7 +79,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
         
         // Process the laser scan
         // check if the timestamp lines up
-        double scan_time = laser_scan->header.stamp.sec + laser_scan->header.stamp.nsec * 1e-9;
+        double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
         if (abs(scan_time - base_timestamp) <= 1e-4) {
           printf("Found Base Scan %f\n", scan_time);
           baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
@@ -88,6 +88,8 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
           printf("Found Match Scan %f\n", scan_time);
           matchCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
         }
+
+        // printf("%f\n", scan_time);
       }
     }
   }
