@@ -95,6 +95,7 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
                                                  double y_max,
                                                  bool excluding,
                                                  const boost::dynamic_bitset<>& excluded) {
+  
   std::pair<Eigen::Vector2f, float> current_most_likely_trans;
   double current_most_likely_prob = 0.0;
   // One degree accuracy seems to be enough for now.
@@ -161,11 +162,13 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
       return std::make_pair(best_probability, best_transformation);
     }
     double x_min_high_res = prob_and_trans_low_res.second.first.x() - low_res_;
-    double x_max_high_res = prob_and_trans_low_res.second.first.x();
+    double x_max_high_res = prob_and_trans_low_res.second.first.x() + low_res_;
     double y_min_high_res = prob_and_trans_low_res.second.first.y() - low_res_;
-    double y_max_high_res = prob_and_trans_low_res.second.first.y();
+    double y_max_high_res = prob_and_trans_low_res.second.first.y() + low_res_;
     y_min_high_res = (y_min_high_res < -range_)? 0 : y_min_high_res;
     x_min_high_res = (x_min_high_res < -range_)? 0 : x_min_high_res;
+    printf("High Res mins %f %f \n", x_min_high_res, y_min_high_res);
+    printf("High Res maxes %f %f \n", x_max_high_res, y_max_high_res);
     CHECK_GE(x_min_high_res, -range_);
     CHECK_LT(x_min_high_res, range_);
     CHECK_GE(y_min_high_res, -range_);
