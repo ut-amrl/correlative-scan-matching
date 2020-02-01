@@ -20,7 +20,7 @@
 #include "./CImg.h"
 
 #define DEFAULT_GAUSSIAN_SIGMA 4
-#define MIN_VALUE_FOR_LOOKUP 1E-12
+#define MIN_VALUE_FOR_LOOKUP 1E-15
 
 using std::vector;
 using Eigen::Vector2f;
@@ -102,9 +102,9 @@ struct LookupTable {
   }
 };
 
-class CorrelativeScanMatcher {
+class ScanMatcher {
  public:
-    CorrelativeScanMatcher(double scanner_range, double low_res, double high_res)
+    ScanMatcher(double scanner_range, double low_res, double high_res)
     : range_(scanner_range), low_res_(low_res), high_res_(high_res) {};
     std::pair<double, std::pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,

@@ -9,7 +9,7 @@
 #include "CorrelativeScanMatcher/CorrScanMatchInputMsg.h"
 #include "Eigen/Dense"
 #include "pointcloud_helpers.h"
-#include "CorrelativeScanMatcher.h"
+#include "ScanMatcher.h"
 
 using std::string;
 using std::vector;
@@ -81,10 +81,11 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
         // check if the timestamp lines up
         double scan_time = laser_scan->header.stamp.sec + laser_scan->header.stamp.nsec * 1e-9;
         if (abs(scan_time - base_timestamp) <= 1e-4) {
-          printf("Found Base Scan\n");
+          printf("Found Base Scan %f\n", scan_time);
           baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
-        } else if (abs(scan_time - match_timestamp) <= 1e-4) {
-          printf("Found Match Scan\n");
+        }
+        if (abs(scan_time - match_timestamp) <= 1e-4) {
+          printf("Found Match Scan %f\n", scan_time);
           matchCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
         }
       }
@@ -94,7 +95,12 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   printf("Done.\n");
   fflush(stdout);
 
-  printf("Successfully converted point clouds");
+  ScanMatcher matcher(4, 0.3, .03);
+  std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
+  fflush(stdout); 
+  double prob = matchResult.first;
+  std::pair<Eigen::Vector2f, float> trans = matchResult.second;
+  printf("Recovered Relative Translation: (%f, %f), Rotation: %f with score %f\n", trans.first.x(), trans.first.y(), trans.second, prob);
 }
 
 void corr_scan_match_callback(const CorrScanMatchInputMsgConstPtr& msg_ptr) {

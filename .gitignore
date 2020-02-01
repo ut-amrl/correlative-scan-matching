@@ -2,3 +2,4 @@ bin/
 build/
 msg_gen/
 src/CorrelativeScanMatcher/
+.vscode/

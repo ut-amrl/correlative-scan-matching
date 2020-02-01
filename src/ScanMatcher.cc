@@ -9,7 +9,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud2.h"
 
-#include "CorrelativeScanMatcher.h"
+#include "ScanMatcher.h"
 #include "./CImg.h"
 #include "./pointcloud_helpers.h"
 
@@ -21,7 +21,7 @@ using Eigen::Vector2f;
 using sensor_msgs::PointCloud2;
 
 LookupTable
-CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
+ScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
                                        double resolution) {
   LookupTable table(range_, resolution);
   for (const Vector2f& point : pointcloud) {
@@ -32,7 +32,7 @@ CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
 }
 
 LookupTable
-CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) {
+ScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) {
   LookupTable low_res_table(range_, low_res_);
   // Run the max filter over the portions of this table.
   for (double x = -range_; x <= range_; x += low_res_) {
@@ -47,7 +47,7 @@ CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) 
 }
 
 LookupTable
-CorrelativeScanMatcher::GetLookupTableHighRes(const vector<Vector2f>& pointcloud) {
+ScanMatcher::GetLookupTableHighRes(const vector<Vector2f>& pointcloud) {
   return GetLookupTable(pointcloud, high_res_);
 }
 
@@ -68,22 +68,25 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
                                const LookupTable& cost_table) {
   double probability = 0.0;
   double min_cost = 1.0;
+  double hits = 0;
+  double dep_factor = 0.6;
   for (const Vector2f& point : pointcloud) {
     double cost = cost_table.GetPointValue(point + Vector2f(x_trans, y_trans));
     if (cost < 0) {
       continue;
     }
+    hits++;
     // Only count as percentage of points that fall inside the grid.
     probability += log(cost);
     if (cost < min_cost) {
       min_cost = cost;
     }
   }
-  return exp(probability);
+  return exp(probability / (hits * dep_factor));
 }
 
 std::pair<double, std::pair<Eigen::Vector2f, float>>
-CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
+ScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
                                                  const LookupTable& pointcloud_b_cost,
                                                  double resolution,
                                                  double x_min,
@@ -130,7 +133,7 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
 }
 
 std::pair<double, std::pair<Eigen::Vector2f, float>>
-CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
+ScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                           const vector<Vector2f>& pointcloud_b) {
   double current_probability = 1.0;
   double best_probability = 0.0;
@@ -193,7 +196,7 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
 }
 
 std::pair<double, std::pair<Eigen::Vector2f, float>>
-CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
+ScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                           const vector<Vector2f>& pointcloud_b,
                                           const double rotation_a,
                                           const double rotation_b) {
@@ -206,7 +209,7 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
 }
 
 Eigen::Matrix3f
-CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+ScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
                                              const vector<Vector2f>& pointcloud_b) {
   // Calculation Method taken from Realtime Correlative Scan Matching
   // by Edward Olsen.
@@ -269,7 +272,7 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
 }
 
 Eigen::Matrix3f
-CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+ScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
                                              const vector<Vector2f>& pointcloud_b,
                                              double rotation_a,
                                              double rotation_b) {
