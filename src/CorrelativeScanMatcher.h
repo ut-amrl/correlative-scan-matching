@@ -2,8 +2,8 @@
 // Created by jack on 1/3/20.
 //
 
-#ifndef CORRELATIVESCANMATCHER_H
-#define CORRELATIVESCANMATCHER_H
+#ifndef CORRELATIVECorrelativeScanMatcher_H
+#define CORRELATIVECorrelativeScanMatcher_H
 
 #include <cstdint>
 #include <cmath>
@@ -102,9 +102,9 @@ struct LookupTable {
   }
 };
 
-class ScanMatcher {
+class CorrelativeScanMatcher {
  public:
-    ScanMatcher(double scanner_range, double low_res, double high_res)
+    CorrelativeScanMatcher(double scanner_range, double low_res, double high_res)
     : range_(scanner_range), low_res_(low_res), high_res_(high_res) {};
     std::pair<double, std::pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,
@@ -140,4 +140,4 @@ class ScanMatcher {
 };
 
 
-#endif //LIDAR_SLAM_CORRELATIVESCANMATCHER_H
+#endif //LIDAR_SLAM_CORRELATIVECorrelativeScanMatcher_H

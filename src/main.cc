@@ -9,7 +9,7 @@
 #include "CorrelativeScanMatching/CorrScanMatchInputMsg.h"
 #include "Eigen/Dense"
 #include "pointcloud_helpers.h"
-#include "ScanMatcher.h"
+#include "CorrelativeScanMatcher.h"
 
 using std::string;
 using std::vector;
@@ -95,7 +95,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   printf("Done.\n");
   fflush(stdout);
 
-  ScanMatcher matcher(4, 0.3, .03);
+  CorrelativeScanMatcher matcher(4, 0.3, .03);
   std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
   fflush(stdout); 
   double prob = matchResult.first;

@@ -47,7 +47,7 @@ SET(libs roslib roscpp rosbag console_bridge cv_bridge gflags glog boost_system 
 ROSBUILD_ADD_EXECUTABLE(correlative_scan_matcher
                         src/main.cc
                         src/pointcloud_helpers.cc
-                        src/ScanMatcher.cc)
+                        src/CorrelativeScanMatcher.cc)
 
 TARGET_LINK_LIBRARIES(correlative_scan_matcher
                       ${libs}
