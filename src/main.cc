@@ -6,15 +6,15 @@
 #include "glog/logging.h"
 #include "rosbag/bag.h"
 #include "rosbag/view.h"
-#include "CorrelativeScanMatcher/CorrScanMatchInputMsg.h"
+#include "CorrelativeScanMatching/CorrScanMatchInputMsg.h"
 #include "Eigen/Dense"
 #include "pointcloud_helpers.h"
 #include "ScanMatcher.h"
 
 using std::string;
 using std::vector;
-using CorrelativeScanMatcher::CorrScanMatchInputMsgConstPtr;
-using CorrelativeScanMatcher::CorrScanMatchInputMsg;
+using CorrelativeScanMatching::CorrScanMatchInputMsgConstPtr;
+using CorrelativeScanMatching::CorrScanMatchInputMsg;
 using sensor_msgs::PointCloud2;
 using Eigen::Vector2f;
 
@@ -109,7 +109,7 @@ void corr_scan_match_callback(const CorrScanMatchInputMsgConstPtr& msg_ptr) {
   PointCloud2 match = msg.match_cloud;
   vector<Vector2f> baseCloud = pointcloud_helpers::RosCloudToPointCloud(base);
   vector<Vector2f> matchCloud = pointcloud_helpers::RosCloudToPointCloud(match);
-  printf("Successfully converted point clouds");
+  printf("Successfully converted point clouds\n");
 }
 
 int main(int argc, char** argv) {
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     ros::Subscriber hitl_sub = n.subscribe(FLAGS_scan_match_topic, 10, corr_scan_match_callback);
     ros::spin();
   } else {
-    std::cout << "Must specify bag file and timestamps, or scan match topic!";
+    std::cout << "Must specify bag file and timestamps, or scan match topic!" << std::endl;
     exit(0);
   }
   return 0;
