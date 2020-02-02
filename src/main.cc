@@ -104,8 +104,8 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   cimg_library::CImgDisplay display1;
   cimg_library::CImgDisplay display2;
   LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
-  LookupTable low_res_lookup = matcher.GetLookupTableLowRes(high_res_lookup);
-  display1.display(low_res_lookup.GetDebugImage().resize_tripleXY());
+  LookupTable match_lookup = matcher.GetLookupTableHighRes(matchCloud);
+  display1.display(match_lookup.GetDebugImage());
   display2.display(high_res_lookup.GetDebugImage().resize_doubleXY());
   
   std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);

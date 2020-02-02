@@ -3,6 +3,7 @@
 //
 
 #include <vector>
+#include <algorithm>
 
 #include <boost/dynamic_bitset.hpp>
 #include "Eigen/Dense"
@@ -12,6 +13,7 @@
 #include "CorrelativeScanMatcher.h"
 #include "./CImg.h"
 #include "./pointcloud_helpers.h"
+
 
 #define UNCERTAINTY_USELESS_THRESHOLD 0.01
 
@@ -39,8 +41,8 @@ CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) 
     for (double y = -range_; y <= range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
-      double max = high_res_table.MaxArea(x - low_res_, y - low_res_, x, y);
-      low_res_table.SetPointValue(Vector2f(x, y), max);
+      double max_area = high_res_table.MaxArea(x - low_res_, y - low_res_, x, y);
+      low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
   return low_res_table;
@@ -164,12 +166,10 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     }
     printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
 
-    double x_min_high_res = prob_and_trans_low_res.second.first.x() - low_res_;
-    double x_max_high_res = prob_and_trans_low_res.second.first.x() + low_res_;
-    double y_min_high_res = prob_and_trans_low_res.second.first.y() - low_res_;
-    double y_max_high_res = prob_and_trans_low_res.second.first.y() + low_res_;
-    y_min_high_res = (y_min_high_res < -range_)? 0 : y_min_high_res;
-    x_min_high_res = (x_min_high_res < -range_)? 0 : x_min_high_res;
+    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.x() - low_res_, -range_);
+    double x_max_high_res = std::min(prob_and_trans_low_res.second.first.x() + low_res_, range_);
+    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.y() - low_res_, -range_);
+    double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, range_);
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
     CHECK_GE(x_min_high_res, -range_);
     CHECK_LT(x_min_high_res, range_);
