@@ -97,7 +97,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   printf("Done.\n");
   fflush(stdout);
 
-  CorrelativeScanMatcher matcher(4, 0.3, .01);
+  CorrelativeScanMatcher matcher(4, 0.3, 0.03);
   std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
   fflush(stdout); 
   double prob = matchResult.first;

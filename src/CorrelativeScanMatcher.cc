@@ -147,7 +147,7 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
   // What is this while loop for? What even changes over the course of the loop?
-  while (current_probability > best_probability) {
+  while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
     auto prob_and_trans_low_res =
       GetProbAndTransformation(pointcloud_a,
@@ -177,8 +177,8 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     CHECK_LT(y_min_high_res, range_);
     CHECK_LE(x_max_high_res, range_);
     CHECK_LE(y_max_high_res, range_);
-    excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(x_max_high_res,
-                                                             y_max_high_res),
+    excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
+                                                             prob_and_trans_low_res.second.first.y()),
                          true);
     auto prob_and_trans_high_res = GetProbAndTransformation(pointcloud_a,
                                                             pointcloud_b_cost_high_res,
