@@ -146,7 +146,8 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  while (current_probability >= best_probability) {
+  // What is this while loop for? What even changes over the course of the loop?
+  while (current_probability > best_probability) {
     // Evaluate over the low_res lookup table.
     auto prob_and_trans_low_res =
       GetProbAndTransformation(pointcloud_a,
@@ -161,14 +162,15 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     if (prob_and_trans_low_res.first < best_probability) {
       return std::make_pair(best_probability, best_transformation);
     }
+    printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
+
     double x_min_high_res = prob_and_trans_low_res.second.first.x() - low_res_;
     double x_max_high_res = prob_and_trans_low_res.second.first.x() + low_res_;
     double y_min_high_res = prob_and_trans_low_res.second.first.y() - low_res_;
     double y_max_high_res = prob_and_trans_low_res.second.first.y() + low_res_;
     y_min_high_res = (y_min_high_res < -range_)? 0 : y_min_high_res;
     x_min_high_res = (x_min_high_res < -range_)? 0 : x_min_high_res;
-    printf("High Res mins %f %f \n", x_min_high_res, y_min_high_res);
-    printf("High Res maxes %f %f \n", x_max_high_res, y_max_high_res);
+    printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
     CHECK_GE(x_min_high_res, -range_);
     CHECK_LT(x_min_high_res, range_);
     CHECK_GE(y_min_high_res, -range_);
@@ -187,6 +189,9 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                                             y_max_high_res,
                                                             false,
                                                             excluded_high_res);
+    
+    printf("Found High Res Pose (%f, %f): %f\n", prob_and_trans_high_res.second.first.x(), prob_and_trans_high_res.second.first.y(), prob_and_trans_high_res.first);
+
     if (prob_and_trans_high_res.first > best_probability) {
       // This is the new best and we should keep searching to make
       // sure there is nothing better.
