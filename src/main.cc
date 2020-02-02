@@ -98,6 +98,14 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   fflush(stdout);
 
   CorrelativeScanMatcher matcher(4, 0.3, 0.03);
+
+  cimg_library::CImgDisplay display1;
+  cimg_library::CImgDisplay display2;
+  LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
+  LookupTable low_res_lookup = matcher.GetLookupTableLowRes(high_res_lookup);
+  display1.display(low_res_lookup.GetDebugImage().resize_tripleXY());
+  display2.display(high_res_lookup.GetDebugImage().resize_tripleXY());
+
   std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
   fflush(stdout); 
   double prob = matchResult.first;
@@ -115,6 +123,11 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   std::sort(std::begin(eigens), std::end(eigens));
   std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
   std::cout << "Maximum scale: " << eigens[2] << std::endl;
+
+  // Wait for the windows to close
+  while (!display1.is_closed() && !display2.is_closed()) {
+    display1.wait();
+  }
 }
 
 void corr_scan_match_callback(const CorrScanMatchInputMsgConstPtr& msg_ptr) {
