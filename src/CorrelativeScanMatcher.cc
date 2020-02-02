@@ -171,12 +171,10 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     double y_min_high_res = std::max(prob_and_trans_low_res.second.first.y() - low_res_, -range_);
     double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, range_);
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
-    CHECK_GE(x_min_high_res, -range_);
     CHECK_LT(x_min_high_res, range_);
-    CHECK_GE(y_min_high_res, -range_);
     CHECK_LT(y_min_high_res, range_);
-    CHECK_LE(x_max_high_res, range_);
-    CHECK_LE(y_max_high_res, range_);
+    CHECK_GT(x_max_high_res, -range_);
+    CHECK_GT(y_max_high_res, -range_);
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
                                                              prob_and_trans_low_res.second.first.y()),
                          true);
