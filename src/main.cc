@@ -55,7 +55,7 @@ DEFINE_string(
   "uncertainty_info",
   "folder in which to store images/uncertainty stats.");
 
-#define MAX_COMPARISONS 14
+#define MAX_COMPARISONS 20
 
 void SignalHandler(int signum) {
   printf("Exiting with %d\n", signum);
@@ -245,10 +245,9 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
               message.instantiate<sensor_msgs::LaserScan>();
       if (laser_scan != nullptr) {
 
-        // Process the laser scan
-        // check if the timestamp lines up
+        // Process the laser scan. Here we take all "even" seconds as base scans
         double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
-        if (scan_time > window && scan_time - floor(scan_time) < 1e-2) {
+        if (scan_time > window && scan_time - floor(scan_time) < 1e-2 && int(floor(scan_time)) % 2 == 0) {
           printf("Found Base Scan %f\n", scan_time);
           std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
           baseClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
@@ -278,7 +277,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
-    for (unsigned int j = 0; j <= matchClouds.size(); j ++) {
+    for (unsigned int j = 0; j <= matchClouds.size(); j++) {
       if (abs(matchClouds[j].first - baseTime) < window) {
         comparisonIndices.push_back(j);
       }
