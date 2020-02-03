@@ -140,22 +140,17 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  vector<Vector2f> clipped_pointcloud_a;
-  for (const Vector2f& point : pointcloud_a) {
-    if (pointcloud_b_cost_high_res.IsInside(point)) {
-      clipped_pointcloud_a.push_back(point);
-    }
-  }
+  double smaller_range = 2;
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
     auto prob_and_trans_low_res =
-      GetProbAndTransformation(clipped_pointcloud_a,
+      GetProbAndTransformation(pointcloud_a,
                                pointcloud_b_cost_low_res,
                                low_res_,
-                               -range_,
-                               range_,
-                               -range_,
-                               range_,
+                               -smaller_range,
+                               smaller_range,
+                               -smaller_range,
+                               smaller_range,
                                true,
                                excluded_low_res);
     current_probability = prob_and_trans_low_res.first;
@@ -165,22 +160,22 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
 
     printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
 
-    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().x(), -range_);
-    double x_max_high_res = std::min(prob_and_trans_low_res.second.first.x() + low_res_, range_);
-    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().y(), -range_);
-    double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, range_);
+    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().x(), -smaller_range);
+    double x_max_high_res = std::min(prob_and_trans_low_res.second.first.x() + low_res_, smaller_range);
+    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().y(), -smaller_range);
+    double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, smaller_range);
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
-    CHECK_LT(x_min_high_res, range_);
-    CHECK_LT(y_min_high_res, range_);
-    CHECK_GT(x_max_high_res, -range_);
-    CHECK_GT(y_max_high_res, -range_);
+    CHECK_LT(x_min_high_res, smaller_range);
+    CHECK_LT(y_min_high_res, smaller_range);
+    CHECK_GT(x_max_high_res, -smaller_range);
+    CHECK_GT(y_max_high_res, -smaller_range);
     if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y())]) {
       return std::make_pair(best_probability, best_transformation);
     }
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
                                                              prob_and_trans_low_res.second.first.y()),
                          true);
-    auto prob_and_trans_high_res = GetProbAndTransformation(clipped_pointcloud_a,
+    auto prob_and_trans_high_res = GetProbAndTransformation(pointcloud_a,
                                                             pointcloud_b_cost_high_res,
                                                             high_res_,
                                                             x_min_high_res,

@@ -114,14 +114,14 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   printf("Done.\n");
   fflush(stdout);
 
-  CorrelativeScanMatcher matcher(2, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(30, 0.3, 0.03);
 
   cimg_library::CImgDisplay display1;
   cimg_library::CImgDisplay display2;
   LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
   LookupTable match_lookup = matcher.GetLookupTableHighRes(matchCloud);
   display1.display(match_lookup.GetDebugImage());
-  display2.display(high_res_lookup.GetDebugImage().resize_doubleXY());
+  display2.display(high_res_lookup.GetDebugImage());
 
   std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
   fflush(stdout); 
@@ -132,16 +132,16 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", baseResult.second.first.x(), baseResult.second.first.y(), baseResult.second.second, prob);
   
   // Try uncertainty stuff
-  Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud);
-  std::cout << "Uncertainty Matrix:" << uncertainty << std::endl;
+ // Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud);
+ // std::cout << "Uncertainty Matrix:" << uncertainty << std::endl;
 
-  std::cout << "Eigenvalues: " << uncertainty.eigenvalues() << std::endl;
-  
-  Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
-  std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
-  std::sort(std::begin(eigens), std::end(eigens));
-  std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
-  std::cout << "Maximum scale: " << eigens[2] << std::endl;
+ // std::cout << "Eigenvalues: " << uncertainty.eigenvalues() << std::endl;
+ // 
+ // Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
+ // std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
+ // std::sort(std::begin(eigens), std::end(eigens));
+ // std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
+ // std::cout << "Maximum scale: " << eigens[2] << std::endl;
 
   Eigen::Affine2f transform = Eigen::Translation2f(trans.first) * Eigen::Rotation2Df(trans.second).toRotationMatrix();
 
