@@ -229,7 +229,7 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
   const LookupTable pointcloud_b_cost_low_res =
           GetLookupTableLowRes(pointcloud_b_cost_high_res);
   vector<double> low_res_costs(pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1, -1);
-  for (double rotation = 0; rotation <= M_2_PI; rotation += M_PI / 180) {
+  for (double rotation = 0; rotation < M_2_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
             RotatePointcloud(pointcloud_a, rotation);
@@ -273,9 +273,9 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
     }
   }
   // Calculate Uncertainty matrix.
-  std::cout << "K: " << std::endl << K << std::endl;
-  std::cout << "u " << std::endl << u << std::endl;
-  std::cout << "s: " << std::endl << s << std::endl;
+  // std::cout << "K: " << std::endl << K << std::endl;
+  // std::cout << "u " << std::endl << u << std::endl;
+  // std::cout << "s: " << std::endl << s << std::endl;
   Eigen::Matrix3f uncertainty = (1.0/s) * K - (1.0/(s*s)) * u * u.transpose();
   return uncertainty;
 }

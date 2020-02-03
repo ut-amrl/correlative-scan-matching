@@ -1,5 +1,6 @@
 #include <csignal>
 #include <vector>
+#include <algorithm>
 
 #include "ros/node_handle.h"
 #include "gflags/gflags.h"
@@ -43,7 +44,7 @@ DEFINE_double(
   0.0,
   "The timestamp in the bag file for the scan to match.");
 DEFINE_double(
-  uncertainty_window,
+  window,
   0.0,
   "The window around the base scan to search for matches, to compute avg uncertainty.");
 
@@ -53,6 +54,7 @@ void SignalHandler(int signum) {
   exit(0);
 }
 
+// Given 2 scans calculate relative transformation & uncertainty
 void scan_match_bag_file(string bag_path, double base_timestamp, double match_timestamp) {
   printf("Loading bag file... ");
   std::vector<Vector2f> baseCloud;
@@ -132,6 +134,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   }
 }
 
+// Given a base timestamp and a window, find the nearby scans to this base timesetamp and calculate avg uncertainty
 void scan_window_bag_file(string bag_path, double base_timestamp, double window) {
   printf("Loading bag file... ");
   std::vector<Vector2f> baseCloud;
@@ -206,6 +209,84 @@ void scan_window_bag_file(string bag_path, double base_timestamp, double window)
   }
 }
 
+void bag_uncertainty_calc(string bag_path, double window) {
+  printf("Loading bag file... ");
+  std::vector<std::pair<double, std::vector<Vector2f>>> baseClouds;
+  rosbag::Bag bag;
+  try {
+    bag.open(bag_path, rosbag::bagmode::Read);
+  } catch (rosbag::BagException& exception) {
+    printf("Unable to read %s, reason %s:", bag_path.c_str(), exception.what());
+    return;
+  }
+  // Get the topics we want
+  vector<string> topics;
+  topics.emplace_back(FLAGS_lidar_topic.c_str());
+  rosbag::View view(bag, rosbag::TopicQuery(topics));
+  printf("Bag file has %d scans\n", view.size());
+  // Iterate through the bag
+  for (rosbag::View::iterator it = view.begin();
+       it != view.end();
+       ++it) {
+    const rosbag::MessageInstance &message = *it;
+    {
+      // Load all the point clouds into memory.
+      sensor_msgs::LaserScanPtr laser_scan =
+              message.instantiate<sensor_msgs::LaserScan>();
+      if (laser_scan != nullptr) {
+
+        // Process the laser scan
+        // check if the timestamp lines up
+        double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
+        if (scan_time > window && scan_time - floor(scan_time) < 1e-2) {
+          printf("Found Base Scan %f\n", scan_time);
+          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          baseClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
+        }
+      }
+    }
+  }
+  bag.close();
+  printf("Done.\n");
+  fflush(stdout);
+  CorrelativeScanMatcher matcher(4, 0.3, 0.03);
+  std::cout << baseClouds.size() << std::endl;
+  cimg_library::CImgDisplay display1;
+  for (unsigned int i = 1; i < baseClouds.size(); i+=1) {
+    double baseTime = baseClouds[i].first;
+    double condition_avg = 0.0;
+    double scale_avg = 0.0;
+    std::vector<Vector2f> baseCloud = baseClouds[i].second;
+    LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
+    display1.empty();
+    display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
+
+    std::vector<int> comparisonIndices;
+    // Find the list of "other" clouds within the base cloud's window.
+    for (unsigned int j = i-1; j <= i+5; j += 1) {
+      if (abs(baseClouds[j].first - baseTime) < window) {
+        comparisonIndices.push_back(j);
+      }
+    }
+
+    for(auto idx : comparisonIndices) {
+      std::vector<Vector2f> cloud = baseClouds[idx].second;
+      Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud);;
+      Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
+      std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
+      std::sort(std::begin(eigens), std::end(eigens));
+      condition_avg += eigens[2] / eigens[0];
+      scale_avg += eigens[2];
+    }
+
+    condition_avg /= comparisonIndices.size();
+    scale_avg /= comparisonIndices.size();
+
+    std::cout << "Average Condition #: " << condition_avg << std::endl;
+    std::cout << "Average Scale: " << scale_avg << std::endl;
+  }
+}
+
 void corr_scan_match_callback(const CorrScanMatchInputMsgConstPtr& msg_ptr) {
   const CorrScanMatchInputMsg msg = *msg_ptr;
   PointCloud2 base = msg.base_cloud;
@@ -223,9 +304,11 @@ int main(int argc, char** argv) {
   if (FLAGS_bag_file.compare("") != 0 && FLAGS_lidar_topic.compare("") != 0 && FLAGS_base_timestamp != 0.0) {
     if (FLAGS_match_timestamp != 0) {
       scan_match_bag_file(FLAGS_bag_file.c_str(), FLAGS_base_timestamp, FLAGS_match_timestamp);
-    } else if (FLAGS_uncertainty_window != 0) {
-      scan_window_bag_file(FLAGS_bag_file.c_str(), FLAGS_base_timestamp, FLAGS_uncertainty_window);
+    } else if (FLAGS_window != 0) {
+      scan_window_bag_file(FLAGS_bag_file.c_str(), FLAGS_base_timestamp, FLAGS_window);
     }
+  } else if (FLAGS_bag_file.compare("") != 0 && FLAGS_lidar_topic.compare("") != 0 && FLAGS_window != 0.0) {
+    bag_uncertainty_calc(FLAGS_bag_file, FLAGS_window);
   } else if(FLAGS_scan_match_topic.compare("") != 0) {
     ros::init(argc, argv, "correlative_scan_matcher");
     ros::NodeHandle n;
@@ -233,7 +316,7 @@ int main(int argc, char** argv) {
     ros::Subscriber hitl_sub = n.subscribe(FLAGS_scan_match_topic, 10, corr_scan_match_callback);
     ros::spin();
   } else {
-    std::cout << "Must specify bag file and timestamps, or scan match topic!" << std::endl;
+    std::cout << "Must specify bag file & lidar topic along, or scan match topic!" << std::endl;
     exit(0);
   }
   return 0;
