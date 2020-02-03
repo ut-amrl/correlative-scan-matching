@@ -41,7 +41,7 @@ CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) 
     for (double y = -range_; y <= range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
-      double max_area = high_res_table.MaxArea(x - low_res_, y - low_res_, x, y);
+      double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
       low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
@@ -72,7 +72,7 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
   for (const Vector2f& point : pointcloud) {
     double cost = cost_table.GetPointValue(point + Vector2f(x_trans, y_trans));
     // Only count as percentage of points that fall inside the grid.
-    probability -= std::max<double>(0, log(cost));
+    probability -= log(cost);
   }
   return exp(-(probability / pointcloud.size()));
 }
@@ -157,14 +157,11 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                range_,
                                true,
                                excluded_low_res);
-    if (prob_and_trans_low_res.first < best_probability) {
-      return std::make_pair(best_probability, best_transformation);
-    }
     printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
 
-    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.x() - low_res_, -range_);
+    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().x(), -range_);
     double x_max_high_res = std::min(prob_and_trans_low_res.second.first.x() + low_res_, range_);
-    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.y() - low_res_, -range_);
+    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().y(), -range_);
     double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, range_);
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
     CHECK_LT(x_min_high_res, range_);
@@ -195,7 +192,7 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
       best_probability = prob_and_trans_high_res.first;
       best_transformation = prob_and_trans_high_res.second;
     }
-    current_probability = prob_and_trans_high_res.first;
+    current_probability = prob_and_trans_low_res.first;
   }
   return std::make_pair(best_probability, best_transformation);
 }
