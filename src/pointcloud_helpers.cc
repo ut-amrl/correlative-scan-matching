@@ -43,7 +43,7 @@ vector<Vector2f>
 pointcloud_helpers::LaserScanToPointCloud(sensor_msgs::LaserScan &laser_scan,
                                           double max_range) {
   vector<pair<size_t, Vector2f>> pointcloud;
-  float angle_offset = 0.0f;
+  float angle_offset = laser_scan.range_min;
   for (size_t index = 0; index < laser_scan.ranges.size(); index++) {
     float range = laser_scan.ranges[index];
     if (range >= laser_scan.range_min && range <= max_range) {

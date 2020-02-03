@@ -48,13 +48,23 @@ struct LookupTable {
     uint64_t x = width / 2 + round(point.x() / resolution);
     uint64_t y = height / 2 + round(point.y() / resolution);
     if (x >= width || y >= height) {
-      return -1.0;
+      return MIN_VALUE_FOR_LOOKUP;
     }
     CHECK_LE(values(x,y), 1.0);
     if (values(x,y) <= MIN_VALUE_FOR_LOOKUP) {
       return MIN_VALUE_FOR_LOOKUP;
     }
     return values(x, y);
+  }
+
+  bool IsInside(Vector2f point) const {
+    uint64_t x = width / 2 + round(point.x() / resolution);
+    uint64_t y = height / 2 + round(point.y() / resolution);
+    if (x >= width || y >= height) {
+      return false;
+    }
+    return true;
+
   }
 
   void SetPointValue(Vector2f point, double value) {
