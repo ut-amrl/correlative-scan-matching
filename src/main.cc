@@ -114,7 +114,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   printf("Done.\n");
   fflush(stdout);
 
-  CorrelativeScanMatcher matcher(4, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(2, 0.3, 0.03);
 
   cimg_library::CImgDisplay display1;
   cimg_library::CImgDisplay display2;
@@ -230,7 +230,7 @@ void scan_window_bag_file(string bag_path, double base_timestamp, double window)
   bag.close();
   printf("Done.\n");
   fflush(stdout);
-  CorrelativeScanMatcher matcher(4, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(2, 0.3, 0.03);
 
   cimg_library::CImgDisplay display1;
   LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
@@ -304,7 +304,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   bag.close();
   printf("Done.\n");
   fflush(stdout);
-  CorrelativeScanMatcher matcher(4, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(2, 0.3, 0.03);
   std::cout << baseClouds.size() << std::endl;
   cimg_library::CImgDisplay display1;
   for (unsigned int i = 1; i < baseClouds.size(); i+=1) {

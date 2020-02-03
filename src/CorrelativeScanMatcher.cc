@@ -158,6 +158,11 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                range_,
                                true,
                                excluded_low_res);
+    current_probability = prob_and_trans_low_res.first;
+    if (current_probability < best_probability) {
+      break;
+    }
+
     printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
 
     double x_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().x(), -range_);
@@ -193,7 +198,6 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
       best_probability = prob_and_trans_high_res.first;
       best_transformation = prob_and_trans_high_res.second;
     }
-    current_probability = prob_and_trans_low_res.first;
   }
   return std::make_pair(best_probability, best_transformation);
 }
