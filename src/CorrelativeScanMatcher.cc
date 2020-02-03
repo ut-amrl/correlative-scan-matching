@@ -74,6 +74,7 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
     // Only count as percentage of points that fall inside the grid.
     probability += log(cost);
   }
+
   return probability / pointcloud.size();
 }
 
@@ -92,7 +93,7 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
     std::make_pair(Vector2f(x_min, y_min), 0);
   double current_most_likely_prob = -INFINITY;
   // One degree accuracy seems to be enough for now.
-  for (double rotation = 0; rotation <= 2*M_PI; rotation += M_PI / 180) {
+  for (double rotation = 0; rotation < 2 * M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
       RotatePointcloud(pointcloud_a, rotation);
@@ -157,15 +158,12 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                range_,
                                true,
                                excluded_low_res);
-    if (prob_and_trans_low_res.first < best_probability) {
-      return std::make_pair(best_probability, best_transformation);
-    }
-    printf("Found Low Res Pose (%f, %f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.second.second, prob_and_trans_low_res.first);
+    printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
 
-    double x_min_high_res = std::max((double)prob_and_trans_low_res.second.first.x(), -range_);
-    double x_max_high_res = std::min((double)prob_and_trans_low_res.second.first.x() + low_res_, range_);
-    double y_min_high_res = std::max((double)prob_and_trans_low_res.second.first.y(), -range_);
-    double y_max_high_res = std::min((double)prob_and_trans_low_res.second.first.y() + low_res_, range_);
+    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().x(), -range_);
+    double x_max_high_res = std::min(prob_and_trans_low_res.second.first.x() + low_res_, range_);
+    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().y(), -range_);
+    double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, range_);
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
     CHECK_LT(x_min_high_res, range_);
     CHECK_LT(y_min_high_res, range_);
@@ -224,7 +222,7 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
   const LookupTable pointcloud_b_cost_high_res = GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
           GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  vector<double> low_res_costs(pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1, -1);
+  vector<double> low_res_costs(pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1, -INFINITY);
 
   for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
@@ -241,7 +239,7 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
                                          y_trans,
                                          pointcloud_b_cost_low_res);
           size_t idx = pointcloud_b_cost_low_res.AbsCoords(x_trans, y_trans);
-          low_res_costs[idx] = cost;
+          low_res_costs[idx] = std::max(cost, low_res_costs[idx]);
       }
     }
   }

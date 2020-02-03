@@ -127,7 +127,9 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   fflush(stdout); 
   double prob = matchResult.first;
   std::pair<Eigen::Vector2f, float> trans = matchResult.second;
-  printf("Recovered Relative Translation: (%f, %f), Rotation: %f with score %f\n", trans.first.x(), trans.first.y(), trans.second, prob);
+  printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", trans.first.x(), trans.first.y(), trans.second, prob);
+  std::pair<double, std::pair<Eigen::Vector2f, float>> baseResult = matcher.GetTransformation(matchCloud, baseCloud);
+  printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", baseResult.second.first.x(), baseResult.second.first.y(), baseResult.second.second, prob);
   
   // Try uncertainty stuff
   Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud);
@@ -150,17 +152,33 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
     }
   }
 
-  cimg_library::CImgDisplay display3;
-  cimg_library::CImg<double> match_image = match_lookup.GetDebugImage();
-  cimg_library::CImg<double> base_image = matcher.GetLookupTableHighRes(baseTransformed).GetDebugImage();
-  cimg_library::CImg<double> transform_image(base_image.width(), base_image.height(), 1, 3);
-  for (int x = 0; x < base_image.width(); x++) {
-    for (int y = 0; y < base_image.height(); y++) {
-      transform_image(x, y, 0, 2) = base_image(x, y);
-      transform_image(x, y, 0, 1) = match_image(x, y);
+  Eigen::Affine2f transform_match_affine = Eigen::Translation2f(baseResult.second.first) * Eigen::Rotation2Df(baseResult.second.second).toRotationMatrix();
+
+  vector<Vector2f> matchTransformed;
+  for (const Vector2f& point : matchCloud) {
+    if (match_lookup.IsInside(point)) {
+      matchTransformed.push_back(transform_match_affine * point);
     }
   }
-  display3.display(transform_image);
+
+  cimg_library::CImgDisplay display3;
+  cimg_library::CImgDisplay display4;
+  cimg_library::CImg<double> match_image = match_lookup.GetDebugImage();
+  cimg_library::CImg<double> match_image_transformed = matcher.GetLookupTableHighRes(matchTransformed).GetDebugImage();
+  cimg_library::CImg<double> base_image = high_res_lookup.GetDebugImage();
+  cimg_library::CImg<double> base_image_transformed = matcher.GetLookupTableHighRes(baseTransformed).GetDebugImage();
+  cimg_library::CImg<double> base_transformed_image(base_image.width(), base_image.height(), 1, 3, 0);
+  cimg_library::CImg<double> match_transformed_image(base_image.width(), base_image.height(), 1, 3, 0);
+  for (int x = 0; x < base_image.width(); x++) {
+    for (int y = 0; y < base_image.height(); y++) {
+      base_transformed_image(x, y, 0, 2) = base_image_transformed(x, y);
+      base_transformed_image(x, y, 0, 1) = match_image(x, y);
+      match_transformed_image(x, y, 0, 2) = base_image(x, y);
+      match_transformed_image(x, y, 0, 1) = match_image_transformed(x, y);
+    }
+  }
+  display4.display(match_transformed_image);
+  display3.display(base_transformed_image);
 
   // Wait for the windows to close
   while (!display1.is_closed() && !display2.is_closed()) {
@@ -202,7 +220,7 @@ void scan_window_bag_file(string bag_path, double base_timestamp, double window)
         if (abs(scan_time - base_timestamp) <= 1e-2) {
           printf("Found Base Scan %f\n", scan_time);
           baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
-        }else if (abs(scan_time - base_timestamp) <= window) {
+        } else if (abs(scan_time - base_timestamp) <= window) {
           printf("Found Match Scan %f\n", scan_time);
           matchClouds.push_back(pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles));
         }

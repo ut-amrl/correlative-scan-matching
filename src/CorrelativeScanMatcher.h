@@ -47,13 +47,10 @@ struct LookupTable {
   inline double GetPointValue(Vector2f point) const {
     uint64_t x = width / 2 + round(point.x() / resolution);
     uint64_t y = height / 2 + round(point.y() / resolution);
-    if (x >= width || y >= height) {
+    if (x >= width || y >= height || values(x, y) <= MIN_VALUE_FOR_LOOKUP) {
       return MIN_VALUE_FOR_LOOKUP;
     }
     CHECK_LE(values(x,y), 1.0);
-    if (values(x,y) <= MIN_VALUE_FOR_LOOKUP) {
-      return MIN_VALUE_FOR_LOOKUP;
-    }
     return values(x, y);
   }
 
