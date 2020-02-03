@@ -96,8 +96,8 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
       RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = x_min + resolution; x_trans <= x_max; x_trans += resolution) {
-      for (double y_trans = y_min + resolution;
+    for (double x_trans = x_min; x_trans <= x_max; x_trans += resolution) {
+      for (double y_trans = y_min;
            y_trans <= y_max;
            y_trans += resolution) {
         // If we are excluding scans, and this is a banned scan. Then don't

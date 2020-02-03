@@ -19,8 +19,8 @@
 #include "ros/ros.h"
 #include "./CImg.h"
 
-#define DEFAULT_GAUSSIAN_SIGMA 4
-#define MIN_VALUE_FOR_LOOKUP 0
+#define DEFAULT_GAUSSIAN_SIGMA 2
+#define MIN_VALUE_FOR_LOOKUP 1E-10
 
 using std::vector;
 using Eigen::Vector2f;

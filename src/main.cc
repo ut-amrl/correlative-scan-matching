@@ -145,7 +145,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
 
   vector<Vector2f> baseTransformed;
   for (const Vector2f& point : baseCloud) {
-    if (match_lookup.IsInside(point)) {
+    if (high_res_lookup.IsInside(point)) {
       baseTransformed.push_back(transform * point);
     }
   }
