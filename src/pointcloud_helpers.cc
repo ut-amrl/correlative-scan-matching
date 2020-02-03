@@ -53,8 +53,7 @@ pointcloud_helpers::LaserScanToPointCloud(sensor_msgs::LaserScan &laser_scan,
       // Then we must rotate the point by the specified angle at that distance.
       Vector2f point(range, 0.0);
       Matrix2f rot_matrix =
-        Rotation2D<float>(laser_scan.angle_min +
-                         (laser_scan.angle_increment * index))
+        Rotation2D<float>(angle_offset)
           .toRotationMatrix();
       point = rot_matrix * point;
       pointcloud.emplace_back(index, point);

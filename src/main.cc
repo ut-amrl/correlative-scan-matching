@@ -153,10 +153,10 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   cimg_library::CImgDisplay display3;
   cimg_library::CImg<double> match_image = match_lookup.GetDebugImage();
   cimg_library::CImg<double> base_image = matcher.GetLookupTableHighRes(baseTransformed).GetDebugImage();
-  cimg_library::CImg<double> transform_image(base_image.width(), base_image.height(), 1, 3);
+  cimg_library::CImg<double> transform_image(base_image.width(), base_image.height(), 1, 3, 0);
   for (int x = 0; x < base_image.width(); x++) {
     for (int y = 0; y < base_image.height(); y++) {
-      transform_image(x, y, 0, 0) = base_image(x, y);
+      transform_image(x, y, 0, 2) = base_image(x, y);
       transform_image(x, y, 0, 1) = match_image(x, y);
     }
   }
