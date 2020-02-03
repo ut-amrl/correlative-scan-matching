@@ -145,7 +145,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
 
   vector<Vector2f> baseTransformed;
   for (const Vector2f& point : baseCloud) {
-    if (match_lookup.IsInside(point)) {
+    if (high_res_lookup.IsInside(point)) {
       baseTransformed.push_back(transform * point);
     }
   }
@@ -156,7 +156,7 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
   cimg_library::CImg<double> transform_image(base_image.width(), base_image.height(), 1, 3);
   for (int x = 0; x < base_image.width(); x++) {
     for (int y = 0; y < base_image.height(); y++) {
-      transform_image(x, y, 0, 0) = base_image(x, y);
+      transform_image(x, y, 0, 2) = base_image(x, y);
       transform_image(x, y, 0, 1) = match_image(x, y);
     }
   }

@@ -69,25 +69,12 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
                                const double y_trans,
                                const LookupTable& cost_table) {
   double probability = 0.0;
-  double min_cost = 1.0;
-  double hits = 0;
-  double dep_factor = 0.6;
   for (const Vector2f& point : pointcloud) {
     double cost = cost_table.GetPointValue(point + Vector2f(x_trans, y_trans));
-    if (cost < 0) {
-      continue;
-    }
-    hits++;
     // Only count as percentage of points that fall inside the grid.
     probability += log(cost);
-    if (cost < min_cost) {
-      min_cost = cost;
-    }
   }
-  if (hits == 0) {
-    return 0.0;
-  }
-  return exp(probability / (hits * dep_factor));
+  return exp(probability / pointcloud.size());
 }
 
 std::pair<double, std::pair<Eigen::Vector2f, float>>
@@ -105,12 +92,12 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
     std::make_pair(Vector2f(x_min + resolution, y_min + resolution), 0);
   double current_most_likely_prob = 0.0;
   // One degree accuracy seems to be enough for now.
-  for (double rotation = 0; rotation <= M_2_PI; rotation += M_PI / 180) {
+  for (double rotation = 0; rotation <= M_PI_2; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
       RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = x_min + resolution; x_trans <= x_max; x_trans += resolution) {
-      for (double y_trans = y_min + resolution;
+    for (double x_trans = x_min; x_trans <= x_max; x_trans += resolution) {
+      for (double y_trans = y_min;
            y_trans <= y_max;
            y_trans += resolution) {
         // If we are excluding scans, and this is a banned scan. Then don't
@@ -238,7 +225,7 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
   const LookupTable pointcloud_b_cost_low_res =
           GetLookupTableLowRes(pointcloud_b_cost_high_res);
   vector<double> low_res_costs(pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1, -1);
-  for (double rotation = 0; rotation < M_2_PI; rotation += M_PI / 180) {
+  for (double rotation = 0; rotation < M_PI_2; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
             RotatePointcloud(pointcloud_a, rotation);
