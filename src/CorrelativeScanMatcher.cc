@@ -98,7 +98,8 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
                                                  bool excluding,
                                                  const boost::dynamic_bitset<>& excluded) {
   
-  std::pair<Eigen::Vector2f, float> current_most_likely_trans;
+  std::pair<Eigen::Vector2f, float> current_most_likely_trans =
+    std::make_pair(Vector2f(x_min + resolution, y_min + resolution), 0);
   double current_most_likely_prob = 0.0;
   // One degree accuracy seems to be enough for now.
   for (double rotation = 0; rotation <= M_2_PI; rotation += M_PI / 180) {
@@ -175,6 +176,8 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     CHECK_LT(y_min_high_res, range_);
     CHECK_GT(x_max_high_res, -range_);
     CHECK_GT(y_max_high_res, -range_);
+    std::cout << "Banning Abs Coords: " << pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y()) << std::endl;
+    CHECK(!excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y())]);
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
                                                              prob_and_trans_low_res.second.first.y()),
                          true);

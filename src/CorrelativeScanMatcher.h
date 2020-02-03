@@ -93,8 +93,6 @@ struct LookupTable {
 
   // Converts the x and y into an absolute 1D coordinate.
   size_t AbsCoords(double x, double y) const {
-    x -= std::fmod(x, resolution);
-    y -= std::fmod(y, resolution);
     size_t row = ((height / 2) + round(y / resolution)) * width;
     size_t col = (width / 2) + round (x / resolution);
     CHECK_GE(row + col, 0);
