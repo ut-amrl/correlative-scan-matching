@@ -84,6 +84,9 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
       min_cost = cost;
     }
   }
+  if (hits == 0) {
+    return 0.0;
+  }
   return exp(probability / (hits * dep_factor));
 }
 
@@ -176,8 +179,9 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     CHECK_LT(y_min_high_res, range_);
     CHECK_GT(x_max_high_res, -range_);
     CHECK_GT(y_max_high_res, -range_);
-    std::cout << "Banning Abs Coords: " << pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y()) << std::endl;
-    CHECK(!excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y())]);
+    if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y())]) {
+      return std::make_pair(best_probability, best_transformation);
+    }
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
                                                              prob_and_trans_low_res.second.first.y()),
                          true);
