@@ -1,6 +1,9 @@
 #include <csignal>
 #include <vector>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <iterator>
 
 #include "ros/node_handle.h"
 #include "gflags/gflags.h"
@@ -47,6 +50,12 @@ DEFINE_double(
   window,
   0.0,
   "The window around the base scan to search for matches, to compute avg uncertainty.");
+DEFINE_string(
+  out_dir,
+  "uncertainty_info",
+  "folder in which to store images/uncertainty stats.");
+
+#define MAX_COMPARISONS 14
 
 void SignalHandler(int signum) {
   printf("Exiting with %d\n", signum);
@@ -209,9 +218,10 @@ void scan_window_bag_file(string bag_path, double base_timestamp, double window)
   }
 }
 
-void bag_uncertainty_calc(string bag_path, double window) {
+void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   printf("Loading bag file... ");
   std::vector<std::pair<double, std::vector<Vector2f>>> baseClouds;
+  std::vector<std::pair<double, std::vector<Vector2f>>> matchClouds;
   rosbag::Bag bag;
   try {
     bag.open(bag_path, rosbag::bagmode::Read);
@@ -242,6 +252,9 @@ void bag_uncertainty_calc(string bag_path, double window) {
           printf("Found Base Scan %f\n", scan_time);
           std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
           baseClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
+        } else {
+          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          matchClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
         }
       }
     }
@@ -260,17 +273,25 @@ void bag_uncertainty_calc(string bag_path, double window) {
     LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
     display1.empty();
     display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
+    string filename = out_dir + "/" + "cloud_" + std::to_string(baseTime) + ".jpeg";
+    high_res_lookup.GetDebugImage().normalize(0, 255).save_jpeg(filename.c_str());
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
-    for (unsigned int j = i-1; j <= i+5; j += 1) {
-      if (abs(baseClouds[j].first - baseTime) < window) {
+    for (unsigned int j = 0; j <= matchClouds.size(); j ++) {
+      if (abs(matchClouds[j].first - baseTime) < window) {
         comparisonIndices.push_back(j);
       }
     }
 
+    std::random_shuffle(comparisonIndices.begin(), comparisonIndices.end());
+
+    comparisonIndices.resize(MAX_COMPARISONS);
+
+    std::cout << "Comparisons: " << comparisonIndices.size() << std::endl;
+
     for(auto idx : comparisonIndices) {
-      std::vector<Vector2f> cloud = baseClouds[idx].second;
+      std::vector<Vector2f> cloud = matchClouds[idx].second;
       Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud);;
       Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
       std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
@@ -284,6 +305,12 @@ void bag_uncertainty_calc(string bag_path, double window) {
 
     std::cout << "Average Condition #: " << condition_avg << std::endl;
     std::cout << "Average Scale: " << scale_avg << std::endl;
+
+    filename = out_dir + "/" + "stats_" + std::to_string(baseTime) + ".txt";
+    std::ofstream stats_write(filename.c_str());
+    stats_write << condition_avg << std::endl;
+    stats_write << scale_avg << std::endl;
+    stats_write.close();
   }
 }
 
@@ -307,8 +334,8 @@ int main(int argc, char** argv) {
     } else if (FLAGS_window != 0) {
       scan_window_bag_file(FLAGS_bag_file.c_str(), FLAGS_base_timestamp, FLAGS_window);
     }
-  } else if (FLAGS_bag_file.compare("") != 0 && FLAGS_lidar_topic.compare("") != 0 && FLAGS_window != 0.0) {
-    bag_uncertainty_calc(FLAGS_bag_file, FLAGS_window);
+  } else if (FLAGS_bag_file.compare("") != 0 && FLAGS_lidar_topic.compare("") != 0 && FLAGS_window != 0.0 && FLAGS_out_dir.compare("") != 0) {
+    bag_uncertainty_calc(FLAGS_bag_file, FLAGS_window, FLAGS_out_dir);
   } else if(FLAGS_scan_match_topic.compare("") != 0) {
     ros::init(argc, argv, "correlative_scan_matcher");
     ros::NodeHandle n;

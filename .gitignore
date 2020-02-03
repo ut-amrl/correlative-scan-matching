@@ -3,4 +3,5 @@ build/
 msg_gen/
 src/CorrelativeScanMatching/
 src/CorrelativeSCanMatching/
+uncertainty_info/
 .vscode/
