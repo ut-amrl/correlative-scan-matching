@@ -92,7 +92,7 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
     std::make_pair(Vector2f(x_min + resolution, y_min + resolution), 0);
   double current_most_likely_prob = 0.0;
   // One degree accuracy seems to be enough for now.
-  for (double rotation = 0; rotation <= M_PI_2; rotation += M_PI / 180) {
+  for (double rotation = 0; rotation <= 2 * M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
       RotatePointcloud(pointcloud_a, rotation);
