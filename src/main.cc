@@ -38,6 +38,10 @@ DEFINE_string(
   lidar_topic,
   "/Cobot/Laser",
   "topic within bag file which to read scans. Only works if scan_match_topic isn't provided.");
+DEFINE_bool(
+  truncate_scan_angles,
+  true,
+  "If true, truncate angles of scans so we dont get artifacts at the ends from some scanners (default: true)");
 DEFINE_double(
   base_timestamp,
   0.0,
@@ -97,11 +101,11 @@ void scan_match_bag_file(string bag_path, double base_timestamp, double match_ti
         double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
         if (abs(scan_time - base_timestamp) <= 1e-1) {
           printf("Found Base Scan %f\n", scan_time);
-          baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
         }
         if (abs(scan_time - match_timestamp) <= 1e-1) {
           printf("Found Match Scan %f\n", scan_time);
-          matchCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          matchCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
         }
       }
     }
@@ -197,10 +201,10 @@ void scan_window_bag_file(string bag_path, double base_timestamp, double window)
         double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
         if (abs(scan_time - base_timestamp) <= 1e-2) {
           printf("Found Base Scan %f\n", scan_time);
-          baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          baseCloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
         }else if (abs(scan_time - base_timestamp) <= window) {
           printf("Found Match Scan %f\n", scan_time);
-          matchClouds.push_back(pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max));
+          matchClouds.push_back(pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles));
         }
       }
     }
@@ -270,10 +274,10 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
         double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
         if (scan_time > window && scan_time - floor(scan_time) < 1e-2 && int(floor(scan_time)) % 2 == 0) {
           printf("Found Base Scan %f\n", scan_time);
-          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
           baseClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
         } else {
-          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max);
+          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
           matchClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
         }
       }

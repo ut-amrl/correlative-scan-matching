@@ -17,6 +17,6 @@ using sensor_msgs::PointCloud2;
 namespace pointcloud_helpers {
   std::vector<Vector2f> RosCloudToPointCloud(sensor_msgs::PointCloud2 &cloud);
   std::vector<Vector2f>
-  LaserScanToPointCloud(sensor_msgs::LaserScan &laser_scan, double max_range);
+  LaserScanToPointCloud(sensor_msgs::LaserScan &laser_scan, double max_range, bool truncate_ends);
 };
 #endif // SRC_POINTCLOUD_HELPERS_H_
