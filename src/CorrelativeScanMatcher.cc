@@ -1,6 +1,4 @@
-//
-// Created by jack on 1/3/20.
-//
+#include "./CorrelativeScanMatcher.h"
 
 #include <vector>
 #include <algorithm>
@@ -10,7 +8,6 @@
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud2.h"
 
-#include "CorrelativeScanMatcher.h"
 #include "./CImg.h"
 #include "./pointcloud_helpers.h"
 
@@ -18,6 +15,7 @@
 #define UNCERTAINTY_USELESS_THRESHOLD -9
 
 using std::vector;
+using std::pair;
 using Eigen::Vector2f;
 
 using sensor_msgs::PointCloud2;
@@ -34,14 +32,16 @@ CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
 }
 
 LookupTable
-CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) {
+CorrelativeScanMatcher::
+GetLookupTableLowRes(const LookupTable& high_res_table) {
   LookupTable low_res_table(range_, low_res_);
   // Run the max filter over the portions of this table.
   for (double x = -range_; x <= range_; x += low_res_) {
     for (double y = -range_; y <= range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
-      double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
+      double max_area =
+        high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
       low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
@@ -49,7 +49,8 @@ CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) 
 }
 
 LookupTable
-CorrelativeScanMatcher::GetLookupTableHighRes(const vector<Vector2f>& pointcloud) {
+CorrelativeScanMatcher::
+GetLookupTableHighRes(const vector<Vector2f>& pointcloud) {
   return GetLookupTable(pointcloud, high_res_);
 }
 
@@ -78,18 +79,18 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
   return probability / pointcloud.size();
 }
 
-std::pair<double, std::pair<Eigen::Vector2f, float>>
-CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
-                                                 const LookupTable& pointcloud_b_cost,
-                                                 double resolution,
-                                                 double x_min,
-                                                 double x_max,
-                                                 double y_min, 
-                                                 double y_max,
-                                                 bool excluding,
-                                                 const boost::dynamic_bitset<>& excluded) {
-  
-  std::pair<Eigen::Vector2f, float> current_most_likely_trans =
+pair<double, pair<Eigen::Vector2f, float>>
+CorrelativeScanMatcher::
+GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
+                         const LookupTable& pointcloud_b_cost,
+                         double resolution,
+                         double x_min,
+                         double x_max,
+                         double y_min,
+                         double y_max,
+                         bool excluding,
+                         const boost::dynamic_bitset<>& excluded) {
+  pair<Eigen::Vector2f, float> current_most_likely_trans =
     std::make_pair(Vector2f(x_min, y_min), 0);
   double current_most_likely_prob = -INFINITY;
   // One degree accuracy seems to be enough for now.
@@ -116,26 +117,29 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
             pointcloud_b_cost);
         // If it is the best so far, keep track of it!
         if (probability > current_most_likely_prob) {
-          current_most_likely_trans = std::pair<Eigen::Vector2f, float>(Vector2f(x_trans, y_trans),
-                                                  rotation);
+          current_most_likely_trans =
+            pair<Eigen::Vector2f, float>(Vector2f(x_trans, y_trans),
+                                              rotation);
           current_most_likely_prob = probability;
         }
       }
     }
   }
-  return std::pair<double, std::pair<Eigen::Vector2f, float>>(current_most_likely_prob,
+  return pair<double, pair<Eigen::Vector2f, float>>(current_most_likely_prob,
                                         current_most_likely_trans);
 }
 
-std::pair<double, std::pair<Eigen::Vector2f, float>>
-CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
-                                          const vector<Vector2f>& pointcloud_b) {
+pair<double, pair<Eigen::Vector2f, float>>
+CorrelativeScanMatcher::
+GetTransformation(const vector<Vector2f>& pointcloud_a,
+                  const vector<Vector2f>& pointcloud_b) {
   double current_probability = 1.0;
   double best_probability = -INFINITY;
-  std::pair<Eigen::Vector2f, float> best_transformation;
+  pair<Eigen::Vector2f, float> best_transformation;
   uint64_t low_res_width = (range_ * 2.0) / low_res_ + 1;
   boost::dynamic_bitset<> excluded_low_res(low_res_width * low_res_width);
-  boost::dynamic_bitset<> excluded_high_res(0); // Dumby value, never used.
+  // Dumby value, never used.
+  boost::dynamic_bitset<> excluded_high_res(0);
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
@@ -158,34 +162,55 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
       break;
     }
 
-    printf("Found Low Res Pose (%f, %f): %f\n", prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y(), prob_and_trans_low_res.first);
+    printf("Found Low Res Pose (%f, %f): %f\n",
+           prob_and_trans_low_res.second.first.x(),
+           prob_and_trans_low_res.second.first.y(),
+           prob_and_trans_low_res.first);
 
-    double x_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().x(), -smaller_range);
-    double x_max_high_res = std::min(prob_and_trans_low_res.second.first.x() + low_res_, smaller_range);
-    double y_min_high_res = std::max(prob_and_trans_low_res.second.first.cast<double>().y(), -smaller_range);
-    double y_max_high_res = std::min(prob_and_trans_low_res.second.first.y() + low_res_, smaller_range);
-    printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n", x_min_high_res, y_min_high_res, x_max_high_res, y_max_high_res);
+    double x_min_high_res =
+      std::max(prob_and_trans_low_res.second.first.cast<double>().x(),
+               -smaller_range);
+    double x_max_high_res =
+      std::min(prob_and_trans_low_res.second.first.x() + low_res_,
+               smaller_range);
+    double y_min_high_res =
+      std::max(prob_and_trans_low_res.second.first.cast<double>().y(),
+               -smaller_range);
+    double y_max_high_res =
+      std::min(prob_and_trans_low_res.second.first.y() + low_res_,
+               smaller_range);
+    printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n",
+           x_min_high_res,
+           y_min_high_res,
+           x_max_high_res,
+           y_max_high_res);
     CHECK_LT(x_min_high_res, smaller_range);
     CHECK_LT(y_min_high_res, smaller_range);
     CHECK_GT(x_max_high_res, -smaller_range);
     CHECK_GT(y_max_high_res, -smaller_range);
-    if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y())]) {
+    double trans_x = prob_and_trans_low_res.second.first.x();
+    double trans_y = prob_and_trans_low_res.second.first.y();
+    if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(trans_x,
+                                                             trans_y)]) {
       return std::make_pair(best_probability, best_transformation);
     }
-    excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
-                                                             prob_and_trans_low_res.second.first.y()),
-                         true);
-    auto prob_and_trans_high_res = GetProbAndTransformation(pointcloud_a,
-                                                            pointcloud_b_cost_high_res,
-                                                            high_res_,
-                                                            x_min_high_res,
-                                                            x_max_high_res,
-                                                            y_min_high_res,
-                                                            y_max_high_res,
-                                                            false,
-                                                            excluded_high_res);
-    
-    printf("Found High Res Pose (%f, %f, %f): %f\n", prob_and_trans_high_res.second.first.x(), prob_and_trans_high_res.second.first.y(),  prob_and_trans_high_res.second.second, prob_and_trans_high_res.first);
+    excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(trans_x,
+                                                             trans_y), true);
+    auto prob_and_trans_high_res =
+      GetProbAndTransformation(pointcloud_a,
+                               pointcloud_b_cost_high_res,
+                               high_res_,
+                               x_min_high_res,
+                               x_max_high_res,
+                               y_min_high_res,
+                               y_max_high_res,
+                               false,
+                               excluded_high_res);
+    printf("Found High Res Pose (%f, %f, %f): %f\n",
+           prob_and_trans_high_res.second.first.x(),
+           prob_and_trans_high_res.second.first.y(),
+           prob_and_trans_high_res.second.second,
+           prob_and_trans_high_res.first);
 
     if (prob_and_trans_high_res.first > best_probability) {
       // This is the new best and we should keep searching to make
@@ -197,7 +222,7 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
   return std::make_pair(best_probability, best_transformation);
 }
 
-std::pair<double, std::pair<Eigen::Vector2f, float>>
+pair<double, pair<Eigen::Vector2f, float>>
 CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                           const vector<Vector2f>& pointcloud_b,
                                           const double rotation_a,
@@ -211,18 +236,22 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
 }
 
 Eigen::Matrix3f
-CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
-                                             const vector<Vector2f>& pointcloud_b) {
+CorrelativeScanMatcher::
+GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+                     const vector<Vector2f>& pointcloud_b) {
   // Calculation Method taken from Realtime Correlative Scan Matching
   // by Edward Olsen.
   Eigen::Matrix3f K = Eigen::Matrix3f::Zero();
   Eigen::Vector3f u(0, 0, 0);
   double s = 0;
-  const LookupTable pointcloud_b_cost_high_res = GetLookupTableHighRes(pointcloud_b);
+  const LookupTable pointcloud_b_cost_high_res =
+    GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
-          GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  vector<double> low_res_costs(pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1, -INFINITY);
-
+    GetLookupTableLowRes(pointcloud_b_cost_high_res);
+  // TODO(Jack): Should be replaced with smaller_range or user-inputted range.
+  // Not full 30x30.
+  size_t max_index = pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1;
+  vector<double> low_res_costs(max_index, -INFINITY);
   for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
@@ -284,10 +313,11 @@ CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_
 }
 
 Eigen::Matrix3f
-CorrelativeScanMatcher::GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
-                                             const vector<Vector2f>& pointcloud_b,
-                                             double rotation_a,
-                                             double rotation_b) {
+CorrelativeScanMatcher::
+GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+                     const vector<Vector2f>& pointcloud_b,
+                     double rotation_a,
+                     double rotation_b) {
   const vector<Vector2f>& rotated_pointcloud_a =
     RotatePointcloud(pointcloud_a, rotation_a);
   const vector<Vector2f>& rotated_pointcloud_b =
