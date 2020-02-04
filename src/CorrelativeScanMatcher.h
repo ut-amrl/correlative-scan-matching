@@ -1,28 +1,29 @@
-//
-// Created by jack on 1/3/20.
-//
+#ifndef SRC_CORRELATIVESCANMATCHER_H_
+#define SRC_CORRELATIVESCANMATCHER_H_
 
-#ifndef CORRELATIVECorrelativeScanMatcher_H
-#define CORRELATIVECorrelativeScanMatcher_H
-
+#include <glog/logging.h>
 #include <cstdint>
 #include <cmath>
+
 #include <memory>
+#include <string>
 #include <vector>
 #include <mutex>
+#include <utility>
+
 #include <boost/dynamic_bitset.hpp>
-#include <glog/logging.h>
-#include "string"
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/image_encodings.h"
-#include "Eigen/Dense"
 #include "ros/ros.h"
+#include "Eigen/Dense"
+
 #include "./CImg.h"
 
 #define DEFAULT_GAUSSIAN_SIGMA 2
 #define MIN_VALUE_FOR_LOOKUP 1E-10
 
 using std::vector;
+using std::pair;
 using Eigen::Vector2f;
 using sensor_msgs::Image;
 using cimg_library::CImg;
@@ -50,7 +51,7 @@ struct LookupTable {
     if (x >= width || y >= height || values(x, y) <= MIN_VALUE_FOR_LOOKUP) {
       return MIN_VALUE_FOR_LOOKUP;
     }
-    CHECK_LE(values(x,y), 1.0);
+    CHECK_LE(values(x, y), 1.0);
     return values(x, y);
   }
 
@@ -61,7 +62,6 @@ struct LookupTable {
       return false;
     }
     return true;
-
   }
 
   void SetPointValue(Vector2f point, double value) {
@@ -89,7 +89,10 @@ struct LookupTable {
     return values;
   }
 
-  double MaxArea(double start_x, double start_y, double end_x, double end_y) const {
+  double MaxArea(double start_x,
+                 double start_y,
+                 double end_x,
+                 double end_y) const {
     double max = 0.0;
     for (double x = start_x; x < end_x; x += resolution) {
       for (double y = start_y; y < end_y; y += resolution) {
@@ -113,12 +116,14 @@ struct LookupTable {
 
 class CorrelativeScanMatcher {
  public:
-    CorrelativeScanMatcher(double scanner_range, double low_res, double high_res)
-    : range_(scanner_range), low_res_(low_res), high_res_(high_res) {};
-    std::pair<double, std::pair<Eigen::Vector2f, float>>
+    CorrelativeScanMatcher(double scanner_range,
+                           double low_res,
+                           double high_res)
+    : range_(scanner_range), low_res_(low_res), high_res_(high_res) {}
+    pair<double, pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,
                       const vector<Vector2f>& pointcloud_b);
-    std::pair<double, std::pair<Eigen::Vector2f, float>>
+    pair<double, pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,
                       const vector<Vector2f>& pointcloud_b,
                       const double rotation_a,
@@ -131,15 +136,17 @@ class CorrelativeScanMatcher {
                                          double rotation_b);
     LookupTable GetLookupTableHighRes(const vector<Vector2f>& pointcloud);
     LookupTable GetLookupTableLowRes(const LookupTable& high_res_table);
+
  private:
-    LookupTable GetLookupTable(const vector<Vector2f>& pointcloud, double resolution);
-    std::pair<double, std::pair<Eigen::Vector2f, float>> 
+    LookupTable GetLookupTable(const vector<Vector2f>& pointcloud,
+                               double resolution);
+    pair<double, pair<Eigen::Vector2f, float>>
       GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
                                const LookupTable& pointcloud_b_cost,
                                double resolution,
                                double x_min,
                                double x_max,
-                               double y_min, 
+                               double y_min,
                                double y_max,
                                bool excluding,
                                const boost::dynamic_bitset<>& excluded);
@@ -149,4 +156,4 @@ class CorrelativeScanMatcher {
 };
 
 
-#endif //LIDAR_SLAM_CORRELATIVECorrelativeScanMatcher_H
+#endif  // SRC_CORRELATIVESCANMATCHER_H_
