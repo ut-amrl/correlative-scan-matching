@@ -30,6 +30,7 @@ CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
     table.SetPointValue(point, 1);
   }
   table.GaussianBlur();
+  table.normalize();
   return table;
 }
 
@@ -37,14 +38,15 @@ LookupTable
 CorrelativeScanMatcher::GetLookupTableLowRes(const LookupTable& high_res_table) {
   LookupTable low_res_table(range_, low_res_);
   // Run the max filter over the portions of this table.
-  for (double x = -range_; x <= range_; x += low_res_) {
-    for (double y = -range_; y <= range_; y += low_res_) {
+  for (double x = -range_; x < range_; x += low_res_) {
+    for (double y = -range_; y < range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
       double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
       low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
+  low_res_table.normalize();
   return low_res_table;
 }
 
@@ -98,13 +100,10 @@ CorrelativeScanMatcher::GetProbAndTransformation(const vector<Vector2f>& pointcl
     const vector<Vector2f> rotated_pointcloud_a =
       RotatePointcloud(pointcloud_a, rotation);
     for (double x_trans = x_min; x_trans < x_max; x_trans += resolution) {
-      for (double y_trans = y_min;
-           y_trans < y_max;
-           y_trans += resolution) {
+      for (double y_trans = y_min; y_trans < y_max; y_trans += resolution) {
         // If we are excluding scans, and this is a banned scan. Then don't
         // consider it.
-        if (excluding &&
-            excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
+        if (excluding && excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
           continue;
         }
         // Otherwise, get the probability / cost of this scan.
@@ -136,10 +135,8 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
   uint64_t low_res_width = (range_ * 2.0) / low_res_ + 1;
   boost::dynamic_bitset<> excluded_low_res(low_res_width * low_res_width);
   boost::dynamic_bitset<> excluded_high_res(0); // Dumby value, never used.
-  const LookupTable pointcloud_b_cost_high_res =
-    GetLookupTableHighRes(pointcloud_b);
-  const LookupTable pointcloud_b_cost_low_res =
-    GetLookupTableLowRes(pointcloud_b_cost_high_res);
+  const LookupTable pointcloud_b_cost_high_res = GetLookupTableHighRes(pointcloud_b);
+  const LookupTable pointcloud_b_cost_low_res = GetLookupTableLowRes(pointcloud_b_cost_high_res);
   double smaller_range = 2;
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
@@ -169,9 +166,6 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
     CHECK_LT(y_min_high_res, smaller_range);
     CHECK_GT(x_max_high_res, -smaller_range);
     CHECK_GT(y_max_high_res, -smaller_range);
-    if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(), prob_and_trans_low_res.second.first.y())]) {
-      return std::make_pair(best_probability, best_transformation);
-    }
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(prob_and_trans_low_res.second.first.x(),
                                                              prob_and_trans_low_res.second.first.y()),
                          true);

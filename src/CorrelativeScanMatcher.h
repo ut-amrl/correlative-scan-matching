@@ -45,8 +45,8 @@ struct LookupTable {
   LookupTable() : width(0), height(0), resolution(1) {}
 
   inline double GetPointValue(Vector2f point) const {
-    uint64_t x = width / 2 + round(point.x() / resolution);
-    uint64_t y = height / 2 + round(point.y() / resolution);
+    uint64_t x = width / 2 + floor(point.x() / resolution);
+    uint64_t y = height / 2 + floor(point.y() / resolution);
     if (x >= width || y >= height || values(x, y) <= MIN_VALUE_FOR_LOOKUP) {
       return MIN_VALUE_FOR_LOOKUP;
     }
@@ -55,8 +55,8 @@ struct LookupTable {
   }
 
   bool IsInside(Vector2f point) const {
-    uint64_t x = width / 2 + round(point.x() / resolution);
-    uint64_t y = height / 2 + round(point.y() / resolution);
+    uint64_t x = width / 2 + floor(point.x() / resolution);
+    uint64_t y = height / 2 + floor(point.y() / resolution);
     if (x >= width || y >= height) {
       return false;
     }
@@ -71,6 +71,10 @@ struct LookupTable {
       return;
     }
     values(x, y) = value;
+  }
+
+  void normalize() {
+    values = values.normalize(0, 1);
   }
 
   void GaussianBlur(const double sigma) {
@@ -101,7 +105,7 @@ struct LookupTable {
   // Converts the x and y into an absolute 1D coordinate.
   size_t AbsCoords(double x, double y) const {
     size_t row = ((height / 2) + round(y / resolution)) * width;
-    size_t col = (width / 2) + round (x / resolution);
+    size_t col = (width / 2) + round(x / resolution);
     CHECK_GE(row + col, 0);
     return row + col;
   }
