@@ -42,8 +42,8 @@ GetLookupTableLowRes(const LookupTable& high_res_table) {
     for (double y = -range_; y < range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
-      double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
-      low_res_table.SetPointValue(Vector2f(x + DBL_EPSILON, y + DBL_EPSILON), max_area);
+      double max_area = high_res_table.MaxArea(x + FLT_EPSILON, y + FLT_EPSILON, x + low_res_, y + low_res_);
+      low_res_table.SetPointValue(Vector2f(x + FLT_EPSILON, y + FLT_EPSILON), max_area);
     }
   }
 //  low_res_table.normalize();
