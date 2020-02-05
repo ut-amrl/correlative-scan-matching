@@ -110,7 +110,7 @@ struct LookupTable {
     uint64_t ex = convertX(end_x);
     uint64_t ey = convertY(end_y);
 
-    CImg<double> cropped = values.get_crop(sx, sy, ex, ey);
+    CImg<double> cropped = values.get_crop(sx, sy, ex - 1, ey - 1);
     const double max_val = cropped.max();
     return max_val;
   }
