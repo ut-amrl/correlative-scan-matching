@@ -101,7 +101,7 @@ TEST(CorrelativeScanMatcherTest, CreateLowResOnHighResWithInexpressibleResolutio
   ASSERT_EQ(low_res.height, static_cast<uint64_t>(2));
   ASSERT_DOUBLE_EQ(low_res.GetPointValue(Vector2f(0, 0)), 0.5);
   ASSERT_DOUBLE_EQ(low_res.GetPointValue(Vector2f(-0.03, -0.03)), 0.75);
-  ASSERT_DOUBLE_EQ(low_res.GetPointValue(Vector2f(-0.03, 0.03)), 0.0);
+  ASSERT_DOUBLE_EQ(low_res.GetPointValue(Vector2f(-0.03, 0.03)), 1E-10);
   ASSERT_DOUBLE_EQ(low_res.GetPointValue(Vector2f(0.0, -0.03)), 0.56);
 }
 
