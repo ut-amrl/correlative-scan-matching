@@ -27,8 +27,8 @@ CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
   for (const Vector2f& point : pointcloud) {
     table.SetPointValue(point, 1);
   }
-  table.GaussianBlur();
 //  table.normalize();
+  table.GaussianBlur();
   return table;
 }
 
@@ -41,8 +41,7 @@ GetLookupTableLowRes(const LookupTable& high_res_table) {
     for (double y = -range_; y < range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
-      double max_area =
-        high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
+      double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
       low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
@@ -142,7 +141,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
-    GetLookupTable(pointcloud_b, low_res_);
+    GetLookupTableLowRes(pointcloud_b_cost_high_res);
   double smaller_range = 2;
   std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;

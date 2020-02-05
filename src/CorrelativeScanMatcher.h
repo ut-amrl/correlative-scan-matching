@@ -19,7 +19,7 @@
 
 #include "./CImg.h"
 
-#define DEFAULT_GAUSSIAN_SIGMA 60
+#define DEFAULT_GAUSSIAN_SIGMA 4
 #define MIN_VALUE_FOR_LOOKUP 1E-10
 
 using std::vector;
@@ -87,7 +87,7 @@ struct LookupTable {
   }
 
   void GaussianBlur(const double sigma) {
-    values = values.blur(sigma * resolution, sigma * resolution, 0, true, true);
+    values = values.blur(sigma, sigma, 0, true, true);
   }
 
   void GaussianBlur() {
@@ -106,11 +106,9 @@ struct LookupTable {
     uint64_t sy = convertY(start_y);
     uint64_t ex = convertX(end_x);
     uint64_t ey = convertY(end_y);
+
     CImg<double> cropped = values.get_crop(sx, sy, ex, ey);
     const double max_val = cropped.max();
-    if (max_val > MIN_VALUE_FOR_LOOKUP) {
-      printf("COMPUTED MAX %f\n", max_val);
-    }
     return max_val;
   }
 
