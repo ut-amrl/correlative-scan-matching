@@ -33,7 +33,7 @@ struct LookupTable {
   uint64_t height;
   double resolution;
   CImg<double> values;
-  LookupTable(const uint64_t range,
+  LookupTable(const double range,
               const double resolution) :
               width(floor((range * 2.0) / resolution)),
               height(floor((range * 2.0) / resolution)),
