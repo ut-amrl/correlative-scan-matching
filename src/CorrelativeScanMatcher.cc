@@ -142,11 +142,10 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
-    GetLookupTableLowRes(pointcloud_b_cost_high_res);
+    GetLookupTable(pointcloud_b, low_res_);
   double smaller_range = 2;
   std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
-  exit(0);
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
     auto prob_and_trans_low_res =

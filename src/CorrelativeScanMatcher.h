@@ -19,7 +19,7 @@
 
 #include "./CImg.h"
 
-#define DEFAULT_GAUSSIAN_SIGMA 2
+#define DEFAULT_GAUSSIAN_SIGMA 60
 #define MIN_VALUE_FOR_LOOKUP 1E-10
 
 using std::vector;
@@ -35,8 +35,8 @@ struct LookupTable {
   CImg<double> values;
   LookupTable(const uint64_t range,
               const double resolution) :
-              width((range * 2.0) / resolution),
-              height((range * 2.0) / resolution),
+              width(floor((range * 2.0) / resolution) + 1),
+              height(floor((range * 2.0) / resolution) + 1),
               resolution(resolution) {
     // Construct a width x height image, with only 1 z level.
     // And, only one double per color with default value 0.0.
@@ -45,9 +45,17 @@ struct LookupTable {
 
   LookupTable() : width(0), height(0), resolution(1) {}
 
+  inline uint64_t convertX(double x) const {
+    return width / 2 + floor(x / resolution);
+  }
+
+  inline uint64_t convertY(double y) const {
+    return height / 2 + floor(y / resolution);
+  }
+
   inline double GetPointValue(Vector2f point) const {
-    uint64_t x = width / 2 + floor(point.x() / resolution);
-    uint64_t y = height / 2 + floor(point.y() / resolution);
+    uint64_t x = convertX(point.x());
+    uint64_t y = convertY(point.y());
     if (x >= width || y >= height || values(x, y) <= MIN_VALUE_FOR_LOOKUP) {
       return MIN_VALUE_FOR_LOOKUP;
     }
@@ -56,8 +64,8 @@ struct LookupTable {
   }
 
   bool IsInside(Vector2f point) const {
-    uint64_t x = width / 2 + floor(point.x() / resolution);
-    uint64_t y = height / 2 + floor(point.y() / resolution);
+    uint64_t x = convertX(point.x());
+    uint64_t y = convertY(point.y());
     if (x >= width || y >= height) {
       return false;
     }
@@ -65,9 +73,10 @@ struct LookupTable {
   }
 
   void SetPointValue(Vector2f point, double value) {
-    uint64_t x = width / 2 + floor(point.x() / resolution);
-    uint64_t y = height / 2 + floor(point.y() / resolution);
+    uint64_t x = convertX(point.x());
+    uint64_t y = convertY(point.y());
     if (x >= width || y >= height) {
+      printf("SETTING OUTSIDE WINDOW\n");
       return;
     }
     values(x, y) = value;
@@ -78,7 +87,7 @@ struct LookupTable {
   }
 
   void GaussianBlur(const double sigma) {
-    values = values.blur(sigma, sigma, 0, true, true);
+    values = values.blur(sigma * resolution, sigma * resolution, 0, true, true);
   }
 
   void GaussianBlur() {
@@ -93,16 +102,16 @@ struct LookupTable {
                  double start_y,
                  double end_x,
                  double end_y) const {
-    double max = 0.0;
-    for (double x = start_x; x < end_x; x += resolution) {
-      for (double y = start_y; y < end_y; y += resolution) {
-        double temp = GetPointValue(Vector2f(x, y));
-        if (temp > max) {
-          max = temp;
-        }
-      }
+    uint64_t sx = convertX(start_x);
+    uint64_t sy = convertY(start_y);
+    uint64_t ex = convertX(end_x);
+    uint64_t ey = convertY(end_y);
+    CImg<double> cropped = values.get_crop(sx, sy, ex, ey);
+    const double max_val = cropped.max();
+    if (max_val > MIN_VALUE_FOR_LOOKUP) {
+      printf("COMPUTED MAX %f\n", max_val);
     }
-    return max;
+    return max_val;
   }
 
   // Converts the x and y into an absolute 1D coordinate.
