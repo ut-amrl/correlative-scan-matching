@@ -12,7 +12,7 @@
 #include "./pointcloud_helpers.h"
 
 
-#define UNCERTAINTY_USELESS_THRESHOLD -9
+#define UNCERTAINTY_USELESS_THRESHOLD log(1e-2)
 
 using std::vector;
 using std::pair;
@@ -27,8 +27,8 @@ CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
   for (const Vector2f& point : pointcloud) {
     table.SetPointValue(point, 1);
   }
-//  table.normalize();
   table.GaussianBlur();
+  table.normalize();
   return table;
 }
 
@@ -46,7 +46,7 @@ GetLookupTableLowRes(const LookupTable& high_res_table) {
       low_res_table.SetPointValue(Vector2f(x + FLT_EPSILON, y + FLT_EPSILON), max_area);
     }
   }
-//  low_res_table.normalize();
+
   return low_res_table;
 }
 
