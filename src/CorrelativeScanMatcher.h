@@ -35,8 +35,8 @@ struct LookupTable {
   CImg<double> values;
   LookupTable(const uint64_t range,
               const double resolution) :
-              width(floor((range * 2.0) / resolution) + 1),
-              height(floor((range * 2.0) / resolution) + 1),
+              width(floor((range * 2.0) / resolution)),
+              height(floor((range * 2.0) / resolution)),
               resolution(resolution) {
     // Construct a width x height image, with only 1 z level.
     // And, only one double per color with default value 0.0.
@@ -46,11 +46,11 @@ struct LookupTable {
   LookupTable() : width(0), height(0), resolution(1) {}
 
   inline uint64_t convertX(float x) const {
-    return trunc((double)width / 2 + x / resolution);
+    return width / 2 + floor(x / resolution);
   }
 
   inline uint64_t convertY(float y) const {
-    return trunc((double)height / 2 + y / resolution);
+    return height / 2 + floor(y / resolution);
   }
 
   inline double GetPointValue(Vector2f point) const {
@@ -87,6 +87,10 @@ struct LookupTable {
 
   void GaussianBlur(const double sigma) {
     values = values.blur(sigma, sigma, 0, true, true);
+  }
+  
+  void clear() {
+    values = values.clear();
   }
 
   void GaussianBlur() {
