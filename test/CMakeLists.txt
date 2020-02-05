@@ -5,4 +5,4 @@ macro(package_add_test TESTNAME)
     set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
 endmacro()
 
-package_add_test(correlative_scan_matcher_tests correlative_scan_matcher_tests.cc)
+package_add_test(correlative_scan_matcher_tests correlative_scan_matcher_tests.cc ../src/CorrelativeScanMatcher.cc)

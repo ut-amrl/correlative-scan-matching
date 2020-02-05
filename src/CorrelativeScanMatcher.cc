@@ -97,8 +97,8 @@ GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
     std::make_pair(Vector2f(x_min, y_min), rotation);
   double current_most_likely_prob = -INFINITY;
 
-  for (double x_trans = x_min; x_trans < x_max; x_trans += resolution) {
-    for (double y_trans = y_min; y_trans < y_max; y_trans += resolution) {
+  for (double x_trans = x_min + FLT_EPSILON; x_trans < x_max; x_trans += resolution) {
+    for (double y_trans = y_min + FLT_EPSILON; y_trans < y_max; y_trans += resolution) {
       // If we are excluding scans, and this is a banned scan. Then don't
       // consider it.
       if (excluding && excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
@@ -172,6 +172,8 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
 
     auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, best_prob_and_trans_low_res.second.second);
 
+
+
     printf("Found Low Res Pose (%f, %f), rotation %f: %f\n",
            best_translation_low_res.x(),
            best_translation_low_res.y(),
@@ -195,6 +197,19 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
            y_min_high_res,
            x_max_high_res,
            y_max_high_res);
+    for (double x = x_min_high_res + FLT_EPSILON; x < x_max_high_res; x += high_res_) {
+      for (double y = y_min_high_res + FLT_EPSILON; y < y_max_high_res; y += high_res_) {
+        for (const Vector2f& point : pointcloud_a) {
+          double low_res_cost = pointcloud_b_cost_low_res.GetPointValue(point + Vector2f(x, y));
+          double high_res_cost = pointcloud_b_cost_high_res.GetPointValue(point + Vector2f(x, y));
+          // Only count as percentage of points that fall inside the grid.
+          if (high_res_cost > low_res_cost) {
+            std::cout << "Greater at High Res: " << pointcloud_b_cost_high_res.convertX(point.x()) << " " << pointcloud_b_cost_high_res.convertY(point.y()) << "Than low res: " << pointcloud_b_cost_low_res.convertX(point.x()) << " " << pointcloud_b_cost_low_res.convertY(point.y()) << std::endl;
+          }
+        }
+      }
+    }
+    exit(1);
     CHECK_LT(x_min_high_res, smaller_range);
     CHECK_LT(y_min_high_res, smaller_range);
     CHECK_GT(x_max_high_res, -smaller_range);
