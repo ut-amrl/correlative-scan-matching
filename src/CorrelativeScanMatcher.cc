@@ -132,6 +132,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
                   const vector<Vector2f>& pointcloud_b) {
   double current_probability = 1.0;
   double best_probability = -INFINITY;
+  double smaller_range = 2;
   pair<Eigen::Vector2f, float> best_transformation;
   uint64_t low_res_width = (range_ * 2.0) / low_res_ + 1;
   boost::dynamic_bitset<> excluded_low_res(low_res_width * low_res_width);
@@ -141,7 +142,19 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  double smaller_range = 2;
+
+  printf("validating low-res table creation: remove this eventually\n");
+  for(float x = -smaller_range + EPSILON; x < smaller_range; x+= high_res_) {
+    for(float y = -smaller_range + EPSILON; y < smaller_range; y+= high_res_) {
+      double low_res_cost = pointcloud_b_cost_low_res.GetPointValue(Vector2f(x, y));
+      double high_res_cost = pointcloud_b_cost_high_res.GetPointValue(Vector2f(x, y));
+      // Only count as percentage of points that fall inside the grid.
+      if (high_res_cost > low_res_cost) {
+        std::cout << "Greater at High Res: " << pointcloud_b_cost_high_res.convertX(x) << " " << pointcloud_b_cost_high_res.convertY(y) << "Than low res: " << pointcloud_b_cost_low_res.convertX(x) << " " << pointcloud_b_cost_low_res.convertY(y) << std::endl;
+      }
+    }
+  }
+
   std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
   while (current_probability >= best_probability) {
@@ -174,8 +187,6 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
 
     auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, best_prob_and_trans_low_res.second.second);
 
-
-
     printf("Found Low Res Pose (%f, %f), rotation %f: %f\n",
            best_translation_low_res.x(),
            best_translation_low_res.y(),
@@ -199,19 +210,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
            y_min_high_res,
            x_max_high_res,
            y_max_high_res);
-    for (double x = x_min_high_res + EPSILON; x < x_max_high_res; x += high_res_) {
-      for (double y = y_min_high_res + EPSILON; y < y_max_high_res; y += high_res_) {
-        for (const Vector2f& point : pointcloud_a) {
-          double low_res_cost = pointcloud_b_cost_low_res.GetPointValue(point + Vector2f(x, y));
-          double high_res_cost = pointcloud_b_cost_high_res.GetPointValue(point + Vector2f(x, y));
-          // Only count as percentage of points that fall inside the grid.
-          if (high_res_cost > low_res_cost) {
-            std::cout << "Greater at High Res: " << pointcloud_b_cost_high_res.convertX(point.x()) << " " << pointcloud_b_cost_high_res.convertY(point.y()) << "Than low res: " << pointcloud_b_cost_low_res.convertX(point.x()) << " " << pointcloud_b_cost_low_res.convertY(point.y()) << std::endl;
-          }
-        }
-      }
-    }
-    exit(1);
+    
     CHECK_LT(x_min_high_res, smaller_range);
     CHECK_LT(y_min_high_res, smaller_range);
     CHECK_GT(x_max_high_res, -smaller_range);
