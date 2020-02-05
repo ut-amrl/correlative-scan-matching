@@ -37,12 +37,13 @@ CorrelativeScanMatcher::
 GetLookupTableLowRes(const LookupTable& high_res_table) {
   LookupTable low_res_table(range_, low_res_);
   // Run the max filter over the portions of this table.
+  
   for (double x = -range_; x < range_; x += low_res_) {
     for (double y = -range_; y < range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
       double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
-      low_res_table.SetPointValue(Vector2f(x, y), max_area);
+      low_res_table.SetPointValue(Vector2f(x + DBL_EPSILON, y + DBL_EPSILON), max_area);
     }
   }
 //  low_res_table.normalize();

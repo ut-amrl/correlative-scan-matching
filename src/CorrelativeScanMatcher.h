@@ -45,12 +45,12 @@ struct LookupTable {
 
   LookupTable() : width(0), height(0), resolution(1) {}
 
-  inline uint64_t convertX(double x) const {
-    return width / 2 + floor(x / resolution);
+  inline uint64_t convertX(float x) const {
+    return trunc((double)width / 2 + x / resolution);
   }
 
-  inline uint64_t convertY(double y) const {
-    return height / 2 + floor(y / resolution);
+  inline uint64_t convertY(float y) const {
+    return trunc((double)height / 2 + y / resolution);
   }
 
   inline double GetPointValue(Vector2f point) const {
@@ -76,7 +76,6 @@ struct LookupTable {
     uint64_t x = convertX(point.x());
     uint64_t y = convertY(point.y());
     if (x >= width || y >= height) {
-      printf("SETTING OUTSIDE WINDOW\n");
       return;
     }
     values(x, y) = value;
