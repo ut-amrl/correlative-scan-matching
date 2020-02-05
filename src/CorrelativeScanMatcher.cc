@@ -20,6 +20,8 @@ using Eigen::Vector2f;
 
 using sensor_msgs::PointCloud2;
 
+#define EPSILON 1e-6
+
 LookupTable
 CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
                                        double resolution) {
@@ -38,12 +40,12 @@ GetLookupTableLowRes(const LookupTable& high_res_table) {
   LookupTable low_res_table(range_, low_res_);
   // Run the max filter over the portions of this table.
   
-  for (double x = -range_; x < range_; x += low_res_) {
-    for (double y = -range_; y < range_; y += low_res_) {
+  for (double x = -range_ + EPSILON; x < range_; x += low_res_) {
+    for (double y = -range_ + EPSILON; y < range_; y += low_res_) {
       // Get the max value for all the cells that this low res
       // cell encompasses.
-      double max_area = high_res_table.MaxArea(x + FLT_EPSILON, y + FLT_EPSILON, x + low_res_, y + low_res_);
-      low_res_table.SetPointValue(Vector2f(x + FLT_EPSILON, y + FLT_EPSILON), max_area);
+      double max_area = high_res_table.MaxArea(x, y, x + low_res_, y + low_res_);
+      low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
 
@@ -97,8 +99,8 @@ GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
     std::make_pair(Vector2f(x_min, y_min), rotation);
   double current_most_likely_prob = -INFINITY;
 
-  for (double x_trans = x_min + FLT_EPSILON; x_trans < x_max; x_trans += resolution) {
-    for (double y_trans = y_min + FLT_EPSILON; y_trans < y_max; y_trans += resolution) {
+  for (double x_trans = x_min + EPSILON; x_trans < x_max; x_trans += resolution) {
+    for (double y_trans = y_min + EPSILON; y_trans < y_max; y_trans += resolution) {
       // If we are excluding scans, and this is a banned scan. Then don't
       // consider it.
       if (excluding && excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
@@ -197,8 +199,8 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
            y_min_high_res,
            x_max_high_res,
            y_max_high_res);
-    for (double x = x_min_high_res + FLT_EPSILON; x < x_max_high_res; x += high_res_) {
-      for (double y = y_min_high_res + FLT_EPSILON; y < y_max_high_res; y += high_res_) {
+    for (double x = x_min_high_res + EPSILON; x < x_max_high_res; x += high_res_) {
+      for (double y = y_min_high_res + EPSILON; y < y_max_high_res; y += high_res_) {
         for (const Vector2f& point : pointcloud_a) {
           double low_res_cost = pointcloud_b_cost_low_res.GetPointValue(point + Vector2f(x, y));
           double high_res_cost = pointcloud_b_cost_high_res.GetPointValue(point + Vector2f(x, y));
