@@ -83,44 +83,40 @@ double CalculatePointcloudCost(const vector<Vector2f>& pointcloud,
 
 pair<double, pair<Eigen::Vector2f, float>>
 CorrelativeScanMatcher::
-GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
+GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
                          const LookupTable& pointcloud_b_cost,
                          double resolution,
                          double x_min,
                          double x_max,
                          double y_min,
                          double y_max,
+                         double rotation,
                          bool excluding,
                          const boost::dynamic_bitset<>& excluded) {
   pair<Eigen::Vector2f, float> current_most_likely_trans =
-    std::make_pair(Vector2f(x_min, y_min), 0);
+    std::make_pair(Vector2f(x_min, y_min), rotation);
   double current_most_likely_prob = -INFINITY;
-  // One degree accuracy seems to be enough for now.
-  for (double rotation = 0; rotation < 2 * M_PI; rotation += M_PI / 180) {
-    // Rotate the pointcloud by this rotation.
-    const vector<Vector2f> rotated_pointcloud_a =
-      RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = x_min; x_trans < x_max; x_trans += resolution) {
-      for (double y_trans = y_min; y_trans < y_max; y_trans += resolution) {
-        // If we are excluding scans, and this is a banned scan. Then don't
-        // consider it.
-        if (excluding && excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
-          continue;
-        }
-        // Otherwise, get the probability / cost of this scan.
-        double probability =
-          CalculatePointcloudCost(
-            rotated_pointcloud_a,
-            x_trans,
-            y_trans,
-            pointcloud_b_cost);
-        // If it is the best so far, keep track of it!
-        if (probability > current_most_likely_prob) {
-          current_most_likely_trans =
-            pair<Eigen::Vector2f, float>(Vector2f(x_trans, y_trans),
-                                              rotation);
-          current_most_likely_prob = probability;
-        }
+
+  for (double x_trans = x_min; x_trans < x_max; x_trans += resolution) {
+    for (double y_trans = y_min; y_trans < y_max; y_trans += resolution) {
+      // If we are excluding scans, and this is a banned scan. Then don't
+      // consider it.
+      if (excluding && excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
+        continue;
+      }
+      // Otherwise, get the probability / cost of this scan.
+      double probability =
+        CalculatePointcloudCost(
+          rotated_pointcloud_a,
+          x_trans,
+          y_trans,
+          pointcloud_b_cost);
+      // If it is the best so far, keep track of it!
+      if (probability > current_most_likely_prob) {
+        current_most_likely_trans =
+          pair<Eigen::Vector2f, float>(Vector2f(x_trans, y_trans),
+                                            rotation);
+        current_most_likely_prob = probability;
       }
     }
   }
@@ -148,38 +144,51 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
-    auto prob_and_trans_low_res =
-      GetProbAndTransformation(pointcloud_a,
-                               pointcloud_b_cost_low_res,
-                               low_res_,
-                               -smaller_range,
-                               smaller_range,
-                               -smaller_range,
-                               smaller_range,
-                               true,
-                               excluded_low_res);
-    current_probability = prob_and_trans_low_res.first;
+    auto best_prob_and_trans_low_res = pair<double, pair<Eigen::Vector2f, double>>(-INFINITY, pair<Eigen::Vector2f, double>(Vector2f(-smaller_range, -smaller_range), 0));
+    for (double rotation = 0; rotation < 2 * M_PI; rotation += M_PI / 180) {
+      auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, rotation);
+      auto prob_and_trans_low_res =
+        GetProbAndTransformation(rotated_pointcloud_a,
+                                pointcloud_b_cost_low_res,
+                                low_res_,
+                                -smaller_range,
+                                smaller_range,
+                                -smaller_range,
+                                smaller_range,
+                                rotation,
+                                true,
+                                excluded_low_res);
+      if(prob_and_trans_low_res.first > best_prob_and_trans_low_res.first) {
+        best_prob_and_trans_low_res = prob_and_trans_low_res;
+      }
+    }
+    current_probability = best_prob_and_trans_low_res.first;
     if (current_probability < best_probability) {
       break;
     }
+    double best_probability_low_res = best_prob_and_trans_low_res.first;
+    Vector2f best_translation_low_res = best_prob_and_trans_low_res.second.first;
+    double best_rotation_low_res = best_prob_and_trans_low_res.second.second;
+
+    auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, best_prob_and_trans_low_res.second.second);
 
     printf("Found Low Res Pose (%f, %f), rotation %f: %f\n",
-           prob_and_trans_low_res.second.first.x(),
-           prob_and_trans_low_res.second.first.y(),
-           prob_and_trans_low_res.second.second,
-           prob_and_trans_low_res.first);
+           best_translation_low_res.x(),
+           best_translation_low_res.y(),
+           best_rotation_low_res,
+           best_probability_low_res);
 
     double x_min_high_res =
-      std::max(prob_and_trans_low_res.second.first.cast<double>().x(),
+      std::max(best_translation_low_res.cast<double>().x(),
                -smaller_range);
     double x_max_high_res =
-      std::min(prob_and_trans_low_res.second.first.x() + low_res_,
+      std::min(best_translation_low_res.x() + low_res_,
                smaller_range);
     double y_min_high_res =
-      std::max(prob_and_trans_low_res.second.first.cast<double>().y(),
+      std::max(best_translation_low_res.cast<double>().y(),
                -smaller_range);
     double y_max_high_res =
-      std::min(prob_and_trans_low_res.second.first.y() + low_res_,
+      std::min(best_translation_low_res.y() + low_res_,
                smaller_range);
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n",
            x_min_high_res,
@@ -190,8 +199,8 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     CHECK_LT(y_min_high_res, smaller_range);
     CHECK_GT(x_max_high_res, -smaller_range);
     CHECK_GT(y_max_high_res, -smaller_range);
-    double trans_x = prob_and_trans_low_res.second.first.x();
-    double trans_y = prob_and_trans_low_res.second.first.y();
+    double trans_x = best_translation_low_res.x();
+    double trans_y = best_translation_low_res.y();
     if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(trans_x,
                                                              trans_y)]) {
       return std::make_pair(best_probability, best_transformation);
@@ -199,19 +208,20 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(trans_x,
                                                              trans_y), true);
     auto prob_and_trans_high_res =
-      GetProbAndTransformation(pointcloud_a,
+      GetProbAndTransformation(rotated_pointcloud_a,
                                pointcloud_b_cost_high_res,
                                high_res_,
                                x_min_high_res,
                                x_max_high_res,
                                y_min_high_res,
                                y_max_high_res,
+                               best_rotation_low_res,
                                false,
                                excluded_high_res);
-    if (prob_and_trans_high_res.first > prob_and_trans_low_res.first) {
+    if (prob_and_trans_high_res.first > best_probability_low_res) {
       for (double y = y_min_high_res; y < y_max_high_res; y += high_res_) {
         for (double x = x_min_high_res; x < x_max_high_res; x += high_res_) {
-          std::cout << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, prob_and_trans_low_res.second.second), x, y, pointcloud_b_cost_high_res) << " "; 
+          std::cout << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, best_rotation_low_res), x, y, pointcloud_b_cost_high_res) << " "; 
         }
         std::cout << std::endl;
       }

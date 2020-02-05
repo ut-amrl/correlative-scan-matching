@@ -158,6 +158,7 @@ class CorrelativeScanMatcher {
                                double x_max,
                                double y_min,
                                double y_max,
+                               double rotation,
                                bool excluding,
                                const boost::dynamic_bitset<>& excluded);
     double range_;
