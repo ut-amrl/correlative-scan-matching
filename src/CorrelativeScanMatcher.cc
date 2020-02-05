@@ -28,7 +28,7 @@ CorrelativeScanMatcher::GetLookupTable(const vector<Vector2f>& pointcloud,
     table.SetPointValue(point, 1);
   }
   table.GaussianBlur();
-  table.normalize();
+//  table.normalize();
   return table;
 }
 
@@ -46,7 +46,7 @@ GetLookupTableLowRes(const LookupTable& high_res_table) {
       low_res_table.SetPointValue(Vector2f(x, y), max_area);
     }
   }
-  low_res_table.normalize();
+//  low_res_table.normalize();
   return low_res_table;
 }
 
@@ -144,6 +144,9 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
   double smaller_range = 2;
+  std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
+  std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
+  exit(0);
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
     auto prob_and_trans_low_res =
@@ -161,9 +164,10 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
       break;
     }
 
-    printf("Found Low Res Pose (%f, %f): %f\n",
+    printf("Found Low Res Pose (%f, %f), rotation %f: %f\n",
            prob_and_trans_low_res.second.first.x(),
            prob_and_trans_low_res.second.first.y(),
+           prob_and_trans_low_res.second.second,
            prob_and_trans_low_res.first);
 
     double x_min_high_res =
@@ -205,6 +209,14 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
                                y_max_high_res,
                                false,
                                excluded_high_res);
+    if (prob_and_trans_high_res.first > prob_and_trans_low_res.first) {
+      for (double y = y_min_high_res; y < y_max_high_res; y += high_res_) {
+        for (double x = x_min_high_res; x < x_max_high_res; x += high_res_) {
+          std::cout << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, prob_and_trans_low_res.second.second), x, y, pointcloud_b_cost_high_res) << " "; 
+        }
+        std::cout << std::endl;
+      }
+    }
     printf("Found High Res Pose (%f, %f, %f): %f\n",
            prob_and_trans_high_res.second.first.x(),
            prob_and_trans_high_res.second.first.y(),

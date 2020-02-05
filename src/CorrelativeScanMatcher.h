@@ -35,8 +35,8 @@ struct LookupTable {
   CImg<double> values;
   LookupTable(const uint64_t range,
               const double resolution) :
-              width((range * 2.0) / resolution + 1),
-              height((range * 2.0) / resolution + 1),
+              width((range * 2.0) / resolution),
+              height((range * 2.0) / resolution),
               resolution(resolution) {
     // Construct a width x height image, with only 1 z level.
     // And, only one double per color with default value 0.0.
@@ -65,8 +65,8 @@ struct LookupTable {
   }
 
   void SetPointValue(Vector2f point, double value) {
-    uint64_t x = width / 2 + point.x() / resolution;
-    uint64_t y = height / 2 + point.y() / resolution;
+    uint64_t x = width / 2 + floor(point.x() / resolution);
+    uint64_t y = height / 2 + floor(point.y() / resolution);
     if (x >= width || y >= height) {
       return;
     }

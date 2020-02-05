@@ -53,7 +53,7 @@ TARGET_LINK_LIBRARIES(correlative_scan_matcher
                       ${libs}
                       ${CERES_LIBRARIES})
 
-#if (TESTING)
-# enable_testing()
-#add_subdirectory(test)
-#endif()
+if (TESTING)
+  enable_testing()
+  add_subdirectory(test)
+endif()
