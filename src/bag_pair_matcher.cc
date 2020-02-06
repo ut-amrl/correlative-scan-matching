@@ -118,23 +118,9 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
   printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", trans.first.x(), trans.first.y(), trans.second, prob);
   std::pair<double, std::pair<Eigen::Vector2f, float>> baseResult = matcher.GetTransformation(matchCloud, baseCloud);
   printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", baseResult.second.first.x(), baseResult.second.first.y(), baseResult.second.second, prob);
-  
-  // Try uncertainty stuff
-  if (calc_uncertainty) {
-    Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud);
-    std::cout << "Uncertainty Matrix:" << uncertainty << std::endl;
 
-    std::cout << "Eigenvalues: " << uncertainty.eigenvalues() << std::endl;
-
-    Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
-    std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
-    std::sort(std::begin(eigens), std::end(eigens));
-    std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
-    std::cout << "Maximum scale: " << eigens[2] << std::endl;
-  }
-
+  printf("Visualizing results...\n");
   Eigen::Affine2f transform = Eigen::Translation2f(trans.first) * Eigen::Rotation2Df(trans.second).toRotationMatrix();
-
   vector<Vector2f> baseTransformed;
   for (const Vector2f& point : baseCloud) {
     if (high_res_lookup.IsInside(point)) {
@@ -143,7 +129,6 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
   }
 
   Eigen::Affine2f transform_match_affine = Eigen::Translation2f(baseResult.second.first) * Eigen::Rotation2Df(baseResult.second.second).toRotationMatrix();
-
   vector<Vector2f> matchTransformed;
   for (const Vector2f& point : matchCloud) {
     if (match_lookup.IsInside(point)) {
@@ -169,6 +154,21 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
   }
   display4.display(match_transformed_image);
   display3.display(base_transformed_image);
+
+  // Try uncertainty stuff
+  if (calc_uncertainty) {
+    printf("Calculating uncertainty matrix...\n");
+    Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud);
+    std::cout << "Uncertainty Matrix:" << uncertainty << std::endl;
+
+    std::cout << "Eigenvalues: " << uncertainty.eigenvalues() << std::endl;
+
+    Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
+    std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
+    std::sort(std::begin(eigens), std::end(eigens));
+    std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
+    std::cout << "Maximum scale: " << eigens[2] << std::endl;
+  }
 
   // Wait for the windows to close
   while (!display1.is_closed() && !display2.is_closed()) {
