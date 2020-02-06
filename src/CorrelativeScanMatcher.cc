@@ -10,13 +10,14 @@
 
 #include "./CImg.h"
 #include "./pointcloud_helpers.h"
-
+#include <chrono>
 
 #define UNCERTAINTY_USELESS_THRESHOLD log(1e-2)
 
 using std::vector;
 using std::pair;
 using Eigen::Vector2f;
+using namespace std::chrono;
 
 using sensor_msgs::PointCloud2;
 
@@ -126,6 +127,11 @@ GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
                                         current_most_likely_trans);
 }
 
+void CorrelativeScanMatcher::printDuration(std::string description, auto startTime, auto endTime) {
+  auto duration = (endTime - startTime);
+  std::cout << description << ": " << duration.count() << " microseconds." << std::endl;
+}
+
 pair<double, pair<Eigen::Vector2f, float>>
 CorrelativeScanMatcher::
 GetTransformation(const vector<Vector2f>& pointcloud_a,
@@ -138,28 +144,20 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
   boost::dynamic_bitset<> excluded_low_res(low_res_width * low_res_width);
   // Dumby value, never used.
   boost::dynamic_bitset<> excluded_high_res(0);
+  auto preHighRes = system_clock::now(); 
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
+  auto postHighRes = system_clock::now(); 
+  auto preLowRes = system_clock::now(); 
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
+  auto postLowRes = system_clock::now(); 
 
-  printf("validating low-res table creation: remove this eventually\n");
-  for(float x = -smaller_range + EPSILON; x < smaller_range; x+= high_res_) {
-    for(float y = -smaller_range + EPSILON; y < smaller_range; y+= high_res_) {
-      double low_res_cost = pointcloud_b_cost_low_res.GetPointValue(Vector2f(x, y));
-      double high_res_cost = pointcloud_b_cost_high_res.GetPointValue(Vector2f(x, y));
-      // Only count as percentage of points that fall inside the grid.
-      if (high_res_cost > low_res_cost) {
-        std::cout << "Greater at High Res: " << pointcloud_b_cost_high_res.convertX(x) << " " << pointcloud_b_cost_high_res.convertY(y) << "Than low res: " << pointcloud_b_cost_low_res.convertX(x) << " " << pointcloud_b_cost_low_res.convertY(y) << std::endl;
-      }
-    }
-  }
-
-  std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
-  std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
+  auto preFullLoop = system_clock::now();
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
     auto best_prob_and_trans_low_res = pair<double, pair<Eigen::Vector2f, double>>(-INFINITY, pair<Eigen::Vector2f, double>(Vector2f(-smaller_range, -smaller_range), 0));
+    auto preLowResTrans = system_clock::now(); 
     for (double rotation = 0; rotation < 2 * M_PI; rotation += M_PI / 180) {
       auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, rotation);
       auto prob_and_trans_low_res =
@@ -177,6 +175,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
         best_prob_and_trans_low_res = prob_and_trans_low_res;
       }
     }
+    auto postLowResTrans = system_clock::now(); 
     current_probability = best_prob_and_trans_low_res.first;
     if (current_probability < best_probability) {
       break;
@@ -185,7 +184,9 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     Vector2f best_translation_low_res = best_prob_and_trans_low_res.second.first;
     double best_rotation_low_res = best_prob_and_trans_low_res.second.second;
 
+    auto prePointCloudRotation = system_clock::now(); 
     auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, best_prob_and_trans_low_res.second.second);
+    auto postPointCloudRotation = system_clock::now(); 
 
     printf("Found Low Res Pose (%f, %f), rotation %f: %f\n",
            best_translation_low_res.x(),
@@ -223,6 +224,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     }
     excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(trans_x,
                                                              trans_y), true);
+    auto preHighResTrans = system_clock::now(); 
     auto prob_and_trans_high_res =
       GetProbAndTransformation(rotated_pointcloud_a,
                                pointcloud_b_cost_high_res,
@@ -234,14 +236,8 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
                                best_rotation_low_res,
                                false,
                                excluded_high_res);
-    if (prob_and_trans_high_res.first > best_probability_low_res) {
-      for (double y = y_min_high_res; y < y_max_high_res; y += high_res_) {
-        for (double x = x_min_high_res; x < x_max_high_res; x += high_res_) {
-          std::cout << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, best_rotation_low_res), x, y, pointcloud_b_cost_high_res) << " "; 
-        }
-        std::cout << std::endl;
-      }
-    }
+    auto postHighResTrans = system_clock::now();
+
     printf("Found High Res Pose (%f, %f, %f): %f\n",
            prob_and_trans_high_res.second.first.x(),
            prob_and_trans_high_res.second.first.y(),
@@ -254,9 +250,19 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
       best_probability = prob_and_trans_high_res.first;
       best_transformation = prob_and_trans_high_res.second;
     }
+    printDuration("Finding Low Res Transformation", preLowResTrans, postLowResTrans);
+    printDuration("Finding High Res Transformation", preHighResTrans, postHighResTrans);
+    printDuration("Point cloud Rotation", prePointCloudRotation, postPointCloudRotation);
   }
+  auto postFullLoop = system_clock::now();
+
+  printDuration("Creating high res lookup Table", preHighRes, postHighRes);
+  printDuration("Creating low res lookup Table", preLowRes, postLowRes);
+  printDuration("Full Loop", preFullLoop, postFullLoop);
+
   return std::make_pair(best_probability, best_transformation);
 }
+
 
 pair<double, pair<Eigen::Vector2f, float>>
 CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,

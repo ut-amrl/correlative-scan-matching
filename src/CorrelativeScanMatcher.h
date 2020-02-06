@@ -164,6 +164,7 @@ class CorrelativeScanMatcher {
     double range_;
     double low_res_;
     double high_res_;
+    void printDuration(std::string description, auto startTime, auto endTime);
 };
 
 
