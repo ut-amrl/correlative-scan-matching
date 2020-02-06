@@ -129,7 +129,7 @@ GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
 
 void CorrelativeScanMatcher::printDuration(std::string description, auto startTime, auto endTime) {
   auto duration = (endTime - startTime);
-  std::cout << description << ": " << duration.count() << " microseconds." << std::endl;
+  std::cout << description << ": " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms." << std::endl;
 }
 
 pair<double, pair<Eigen::Vector2f, float>>
