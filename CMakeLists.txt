@@ -44,12 +44,28 @@ rosbuild_genmsg()
 
 SET(libs roslib roscpp rosbag console_bridge cv_bridge gflags glog boost_system m X11)
 
-ROSBUILD_ADD_EXECUTABLE(correlative_scan_matcher
-                        src/main.cc
+ROSBUILD_ADD_EXECUTABLE(correlative_scan_match_pair
+                        src/bag_pair_matcher.cc
                         src/pointcloud_helpers.cc
                         src/CorrelativeScanMatcher.cc)
 
-TARGET_LINK_LIBRARIES(correlative_scan_matcher
+ROSBUILD_ADD_EXECUTABLE(correlative_scan_bag_avg
+                        src/bag_avg_matcher.cc
+                        src/pointcloud_helpers.cc
+                        src/CorrelativeScanMatcher.cc)
+
+ROSBUILD_ADD_EXECUTABLE(correlative_scan_ros_matcher
+                        src/ros_topic_matcher.cc
+                        src/pointcloud_helpers.cc
+                        src/CorrelativeScanMatcher.cc)
+
+TARGET_LINK_LIBRARIES(correlative_scan_match_pair
+                      ${libs}
+                      ${CERES_LIBRARIES})
+TARGET_LINK_LIBRARIES(correlative_scan_bag_avg
+                      ${libs}
+                      ${CERES_LIBRARIES})
+TARGET_LINK_LIBRARIES(correlative_scan_ros_matcher
                       ${libs}
                       ${CERES_LIBRARIES})
 
