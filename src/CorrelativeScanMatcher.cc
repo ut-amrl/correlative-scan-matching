@@ -12,7 +12,7 @@
 #include "./pointcloud_helpers.h"
 
 
-#define UNCERTAINTY_USELESS_THRESHOLD log(1e-2)
+#define UNCERTAINTY_USELESS_THRESHOLD log(1e-4)
 
 using std::vector;
 using std::pair;
@@ -280,23 +280,23 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
   Eigen::Matrix3f K = Eigen::Matrix3f::Zero();
   Eigen::Vector3f u(0, 0, 0);
   double s = 0;
+  double smaller_range = 2;
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  // TODO(Jack): Should be replaced with smaller_range or user-inputted range.
-  // Not full 30x30.
-  size_t max_index = pointcloud_b_cost_low_res.AbsCoords(range_, range_) + 1;
+  printf("pre-computing low-res cost table...\n");
+  size_t max_index = pointcloud_b_cost_low_res.AbsCoords(smaller_range, smaller_range) + 1;
   vector<double> low_res_costs(max_index, -INFINITY);
   for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
             RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = -range_ + low_res_;
-         x_trans < range_;
+    for (double x_trans = -smaller_range + EPSILON;
+         x_trans < smaller_range;
          x_trans += low_res_) {
-      for (double y_trans = -range_ + low_res_;
-           y_trans < range_;
+      for (double y_trans = -smaller_range + EPSILON;
+           y_trans < smaller_range;
            y_trans += low_res_) {
           double cost = CalculatePointcloudCost(rotated_pointcloud_a,
                                          x_trans,
@@ -308,16 +308,17 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
     }
   }
 
+  printf("Calculating Uncertainty...\n");
   for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
             RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = -range_ + high_res_;
-         x_trans < range_;
-         x_trans += high_res_) {
-      for (double y_trans = -range_ + high_res_;
-           y_trans < range_;
-           y_trans += high_res_) {
+    for (double x_trans = -smaller_range + EPSILON;
+         x_trans < smaller_range;
+         x_trans += low_res_) {
+      for (double y_trans = -smaller_range + EPSILON;
+          y_trans < smaller_range;
+          y_trans += low_res_) {
         // If this is a negligible amount of the total sum then just use the
         // low res cost, don't worry about the high res cost.
         size_t low_res_cost_idx =
