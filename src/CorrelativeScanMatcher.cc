@@ -11,8 +11,8 @@
 #include "./CImg.h"
 #include "./pointcloud_helpers.h"
 
-
 #define UNCERTAINTY_USELESS_THRESHOLD log(1e-4)
+#define DEBUG false
 
 using std::vector;
 using std::pair;
@@ -142,21 +142,10 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-
-  printf("validating low-res table creation: remove this eventually\n");
-  for(float x = -smaller_range + EPSILON; x < smaller_range; x+= high_res_) {
-    for(float y = -smaller_range + EPSILON; y < smaller_range; y+= high_res_) {
-      double low_res_cost = pointcloud_b_cost_low_res.GetPointValue(Vector2f(x, y));
-      double high_res_cost = pointcloud_b_cost_high_res.GetPointValue(Vector2f(x, y));
-      // Only count as percentage of points that fall inside the grid.
-      if (high_res_cost > low_res_cost) {
-        std::cout << "Greater at High Res: " << pointcloud_b_cost_high_res.convertX(x) << " " << pointcloud_b_cost_high_res.convertY(y) << "Than low res: " << pointcloud_b_cost_low_res.convertX(x) << " " << pointcloud_b_cost_low_res.convertY(y) << std::endl;
-      }
-    }
-  }
-
+  #if DEBUG
   std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
+  #endif
   while (current_probability >= best_probability) {
     // Evaluate over the low_res lookup table.
     auto best_prob_and_trans_low_res = pair<double, pair<Eigen::Vector2f, double>>(-INFINITY, pair<Eigen::Vector2f, double>(Vector2f(-smaller_range, -smaller_range), 0));
@@ -187,11 +176,13 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
 
     auto rotated_pointcloud_a = RotatePointcloud(pointcloud_a, best_prob_and_trans_low_res.second.second);
 
+    #if DEBUG
     printf("Found Low Res Pose (%f, %f), rotation %f: %f\n",
            best_translation_low_res.x(),
            best_translation_low_res.y(),
            best_rotation_low_res,
            best_probability_low_res);
+    #endif
 
     double x_min_high_res =
       std::max(best_translation_low_res.cast<double>().x(),
@@ -205,11 +196,14 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     double y_max_high_res =
       std::min(best_translation_low_res.y() + low_res_,
                smaller_range);
+    
+    #if DEBUG
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n",
            x_min_high_res,
            y_min_high_res,
            x_max_high_res,
            y_max_high_res);
+    #endif
     
     CHECK_LT(x_min_high_res, smaller_range);
     CHECK_LT(y_min_high_res, smaller_range);
@@ -234,6 +228,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
                                best_rotation_low_res,
                                false,
                                excluded_high_res);
+    #if DEBUG
     if (prob_and_trans_high_res.first > best_probability_low_res) {
       for (double y = y_min_high_res; y < y_max_high_res; y += high_res_) {
         for (double x = x_min_high_res; x < x_max_high_res; x += high_res_) {
@@ -247,6 +242,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
            prob_and_trans_high_res.second.first.y(),
            prob_and_trans_high_res.second.second,
            prob_and_trans_high_res.first);
+    #endif
 
     if (prob_and_trans_high_res.first > best_probability) {
       // This is the new best and we should keep searching to make
@@ -285,28 +281,6 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  printf("pre-computing low-res cost table...\n");
-  size_t max_index = pointcloud_b_cost_low_res.AbsCoords(smaller_range, smaller_range) + 1;
-  vector<double> low_res_costs(max_index, -INFINITY);
-  for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
-    // Rotate the pointcloud by this rotation.
-    const vector<Vector2f> rotated_pointcloud_a =
-            RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = -smaller_range + EPSILON;
-         x_trans < smaller_range;
-         x_trans += low_res_) {
-      for (double y_trans = -smaller_range + EPSILON;
-           y_trans < smaller_range;
-           y_trans += low_res_) {
-          double cost = CalculatePointcloudCost(rotated_pointcloud_a,
-                                         x_trans,
-                                         y_trans,
-                                         pointcloud_b_cost_low_res);
-          size_t idx = pointcloud_b_cost_low_res.AbsCoords(x_trans, y_trans);
-          low_res_costs[idx] = std::max(cost, low_res_costs[idx]);
-      }
-    }
-  }
 
   printf("Calculating Uncertainty...\n");
   for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
@@ -321,9 +295,10 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
           y_trans += low_res_) {
         // If this is a negligible amount of the total sum then just use the
         // low res cost, don't worry about the high res cost.
-        size_t low_res_cost_idx =
-          pointcloud_b_cost_low_res.AbsCoords(x_trans, y_trans);
-        double low_res_cost = low_res_costs[low_res_cost_idx];
+        double low_res_cost = CalculatePointcloudCost(rotated_pointcloud_a,
+                                x_trans,
+                                y_trans,
+                                pointcloud_b_cost_low_res);
         double cost = 0.0;
         if (low_res_cost <= UNCERTAINTY_USELESS_THRESHOLD) {
           cost = low_res_cost;
