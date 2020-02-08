@@ -7,3 +7,4 @@ src/CorrelativeScanMatcher/
 uncertainty_info/
 .vscode/
 msg_gen/*
+*.so
