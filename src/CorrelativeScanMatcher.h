@@ -141,10 +141,9 @@ class CorrelativeScanMatcher {
                       const double rotation_b);
     Eigen::Matrix3f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
                                          const vector<Vector2f>& pointcloud_b);
-    Eigen::Matrix3f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+    Eigen::Matrix2f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
                                          const vector<Vector2f>& pointcloud_b,
-                                         double rotation_a,
-                                         double rotation_b);
+                                         const double rotation);
     LookupTable GetLookupTableHighRes(const vector<Vector2f>& pointcloud);
     LookupTable GetLookupTableLowRes(const LookupTable& high_res_table);
 

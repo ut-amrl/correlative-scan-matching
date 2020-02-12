@@ -20,7 +20,7 @@ using std::vector;
 using CorrelativeScanMatching::CorrScanMatchInputMsgConstPtr;
 using CorrelativeScanMatching::CorrScanMatchInputMsg;
 using sensor_msgs::PointCloud2;
-using Eigen::Vector2f;
+using namespace Eigen;
 
 DEFINE_string(
   bag_file,
@@ -116,19 +116,21 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
   cimg_library::CImgDisplay display2;
   LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
   LookupTable match_lookup = matcher.GetLookupTableHighRes(matchCloud);
-  display1.display(match_lookup.GetDebugImage());
-  display2.display(high_res_lookup.GetDebugImage());
+  CImg<double> scanDisplay;
+  scanDisplay.append(match_lookup.GetDebugImage());
+  scanDisplay.append(high_res_lookup.GetDebugImage(), 'x');
+  display1.display(scanDisplay);
 
-  std::pair<double, std::pair<Eigen::Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
+  std::pair<double, std::pair<Vector2f, float>> matchResult = matcher.GetTransformation(baseCloud, matchCloud);
   fflush(stdout); 
   double prob = matchResult.first;
-  std::pair<Eigen::Vector2f, float> trans = matchResult.second;
+  std::pair<Vector2f, float> trans = matchResult.second;
   printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", trans.first.x(), trans.first.y(), trans.second, prob);
-  std::pair<double, std::pair<Eigen::Vector2f, float>> baseResult = matcher.GetTransformation(matchCloud, baseCloud);
+  std::pair<double, std::pair<Vector2f, float>> baseResult = matcher.GetTransformation(matchCloud, baseCloud);
   printf("recovered relative translation: (%f, %f), rotation: %f with score %f\n", baseResult.second.first.x(), baseResult.second.first.y(), baseResult.second.second, prob);
 
   printf("Visualizing results...\n");
-  Eigen::Affine2f transform = Eigen::Translation2f(trans.first) * Eigen::Rotation2Df(trans.second).toRotationMatrix();
+  Affine2f transform = Translation2f(trans.first) * Rotation2Df(trans.second).toRotationMatrix();
   vector<Vector2f> baseTransformed;
   for (const Vector2f& point : baseCloud) {
     if (high_res_lookup.IsInside(point)) {
@@ -136,7 +138,7 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
     }
   }
 
-  Eigen::Affine2f transform_match_affine = Eigen::Translation2f(baseResult.second.first) * Eigen::Rotation2Df(baseResult.second.second).toRotationMatrix();
+  Affine2f transform_match_affine = Translation2f(baseResult.second.first) * Rotation2Df(baseResult.second.second).toRotationMatrix();
   vector<Vector2f> matchTransformed;
   for (const Vector2f& point : matchCloud) {
     if (match_lookup.IsInside(point)) {
@@ -144,8 +146,6 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
     }
   }
 
-  cimg_library::CImgDisplay display3;
-  cimg_library::CImgDisplay display4;
   cimg_library::CImg<double> match_image = match_lookup.GetDebugImage();
   cimg_library::CImg<double> match_image_transformed = matcher.GetLookupTableHighRes(matchTransformed).GetDebugImage();
   cimg_library::CImg<double> base_image = high_res_lookup.GetDebugImage();
@@ -160,26 +160,34 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
       match_transformed_image(x, y, 0, 1) = match_image_transformed(x, y);
     }
   }
-  display4.display(match_transformed_image);
-  display3.display(base_transformed_image);
 
   // Try uncertainty stuff
   if (calc_uncertainty) {
     printf("Calculating uncertainty matrix...\n");
-    Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud);
-    std::cout << "Uncertainty Matrix:" << uncertainty << std::endl;
+    Matrix2f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, matchCloud, trans.second);
+    EigenSolver<Matrix2f> es(uncertainty);
+    Matrix2f eigenvectors = es.eigenvectors().real();
+    Vector2f eigenvalues = es.eigenvalues().real();
+    std::cout << "Values:" << eigenvalues << std:: endl;
+    std::cout << "Vectors:" << eigenvectors << std:: endl;
 
-    std::cout << "Eigenvalues: " << uncertainty.eigenvalues() << std::endl;
-
-    Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
-    std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
-    std::sort(std::begin(eigens), std::end(eigens));
-    std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
-    std::cout << "Maximum scale: " << eigens[2] << std::endl;
+    CImg<unsigned char> uncertainty_img(base_image_transformed.width(),base_image_transformed.height(), 1, 3, 0);
+    const unsigned char color[] = { 0, 0, 255 };
+    uncertainty_img.draw_ellipse(uncertainty_img.width()/2, uncertainty_img.height()/2, eigenvalues[0] * 50, eigenvalues[1] * 50, atan(eigenvectors.col(0)[1] / eigenvectors.col(0)[0]), color, 1.0);
+    std::cout << "Condition #: " << eigenvalues[1] / eigenvalues[0] << std::endl;
+    std::cout << "Maximum scale: " << eigenvalues[1] << std::endl;
+    display2.display(uncertainty_img);
+    base_image_transformed.draw_image(0, 0, uncertainty_img);
   }
+  CImg<double> resultImg;
+  resultImg.append(match_transformed_image);
+  resultImg.append(base_transformed_image, 'x');
+
+  scanDisplay.append(resultImg, 'y');
+  display1.display(scanDisplay);
 
   // Wait for the windows to close
-  while (!display1.is_closed() && !display2.is_closed()) {
+  while (!display1.is_closed()) {
     display1.wait();
   }
 }

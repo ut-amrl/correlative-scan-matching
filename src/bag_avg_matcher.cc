@@ -138,7 +138,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
     for(auto idx : comparisonIndices) {
       std::vector<Vector2f> cloud = matchClouds[idx].second;
-      Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud);;
+      Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud);
       Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
       std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
       std::sort(std::begin(eigens), std::end(eigens));
