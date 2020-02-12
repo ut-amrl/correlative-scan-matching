@@ -19,7 +19,7 @@ stats_files = glob.glob(os.path.join(opt.uncertainty_info, 'stats_*.txt'))
 
 for name in tqdm(stats_files):
     timestamp = name[name.find('stats_') + len('stats_'):name.find('.txt')]
-
+    print("Timestamp: ", timestamp)
     with open(name, 'r') as f:
         condition = float(f.readline().strip())
         scale = float(f.readline().strip())

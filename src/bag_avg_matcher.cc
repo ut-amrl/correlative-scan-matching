@@ -78,6 +78,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   topics.emplace_back(FLAGS_lidar_topic.c_str());
   rosbag::View view(bag, rosbag::TopicQuery(topics));
   printf("Bag file has %d scans\n", view.size());
+  printf("Bag Start time: %f\n", view.getBeginTime().toSec());
   // Iterate through the bag
   for (rosbag::View::iterator it = view.begin();
        it != view.end();
@@ -90,7 +91,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
       if (laser_scan != nullptr) {
 
         // Process the laser scan. Here we take all "even" seconds as base scans
-        double scan_time = (laser_scan->header.stamp - view.getBeginTime()).toSec();
+        double scan_time = (laser_scan->header.stamp).toSec();
         if (scan_time > window && scan_time - floor(scan_time) < 1e-2 && int(floor(scan_time)) % 2 == 0) {
           printf("Found Base Scan %f\n", scan_time);
           std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
@@ -110,13 +111,15 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   cimg_library::CImgDisplay display1;
   for (unsigned int i = 1; i < baseClouds.size(); i+=1) {
     double baseTime = baseClouds[i].first;
+    char timestamp[20];
+    sprintf(timestamp, "%.5f", baseTime);
     double condition_avg = 0.0;
     double scale_avg = 0.0;
     std::vector<Vector2f> baseCloud = baseClouds[i].second;
     LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
     display1.empty();
     display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
-    string filename = out_dir + "/" + "cloud_" + std::to_string(baseTime) + ".jpeg";
+    string filename = out_dir + "/" + "cloud_" + timestamp + ".bmp";
     high_res_lookup.GetDebugImage().normalize(0, 255).save_bmp(filename.c_str());
 
     std::vector<int> comparisonIndices;
@@ -149,7 +152,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     std::cout << "Average Condition #: " << condition_avg << std::endl;
     std::cout << "Average Scale: " << scale_avg << std::endl;
 
-    filename = out_dir + "/" + "stats_" + std::to_string(baseTime) + ".txt";
+    filename = out_dir + "/" + "stats_" + timestamp + ".txt";
     std::ofstream stats_write(filename.c_str());
     stats_write << condition_avg << std::endl;
     stats_write << scale_avg << std::endl;
