@@ -64,7 +64,7 @@ TEST(CorrelativeScanMatcherTest, OutOfBoundsTest) {
 TEST(CorrelativeScanMatcherTest, CreateLowResSimple) {
   LookupTable table(4, 1);
   table.SetPointValue(Vector2f(0, 0), 1);
-  CorrelativeScanMatcher matcher(4, 1, 1);
+  CorrelativeScanMatcher matcher(4, 4, 1, 1);
   LookupTable low_res = matcher.GetLookupTableLowRes(table);
   ASSERT_EQ(low_res.GetPointValue(Vector2f(0, 0)), 1);
 }
@@ -73,7 +73,7 @@ TEST(CorrelativeScanMatcherTest, CreateLowResTest) {
   LookupTable table(4, 0.5);
   table.SetPointValue(Vector2f(0, 0.1), 0.5);
   table.SetPointValue(Vector2f(0, 0.7), 0.56);
-  CorrelativeScanMatcher matcher(4, 1, 0.5);
+  CorrelativeScanMatcher matcher(4,4,  1, 0.5);
   LookupTable low_res = matcher.GetLookupTableLowRes(table);
   ASSERT_DOUBLE_EQ(low_res.GetPointValue(Vector2f(0, 0)), 0.56);
 }
@@ -82,7 +82,7 @@ TEST(CorrelativeScanMatcherTest, CreateLowResOnHighResWithInexpressibleResolutio
   LookupTable table(0.3, 0.03);
   table.SetPointValue(Vector2f(0, 0), 0.5);
   table.SetPointValue(Vector2f(0, 0.031), 0.56);
-  CorrelativeScanMatcher matcher(0.3, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(0.3, 0.3, 0.3, 0.03);
   LookupTable low_res = matcher.GetLookupTableLowRes(table);
   ASSERT_EQ(low_res.width, static_cast<uint64_t>(2));
   ASSERT_EQ(low_res.height, static_cast<uint64_t>(2));
@@ -95,7 +95,7 @@ TEST(CorrelativeScanMatcherTest, CreateLowResOnHighResWithInexpressibleResolutio
   table.SetPointValue(Vector2f(0, -0.031), 0.56);
   table.SetPointValue(Vector2f(-0.061, -0.031), 0.56);
   table.SetPointValue(Vector2f(-0.031, -0.031), 0.75);
-  CorrelativeScanMatcher matcher(0.3, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(0.3, 0.3, 0.3, 0.03);
   LookupTable low_res = matcher.GetLookupTableLowRes(table);
   ASSERT_EQ(low_res.width, static_cast<uint64_t>(2));
   ASSERT_EQ(low_res.height, static_cast<uint64_t>(2));

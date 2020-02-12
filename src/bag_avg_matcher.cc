@@ -25,25 +25,36 @@ using Eigen::Vector2f;
 DEFINE_string(
   bag_file,
   "",
-  "Bag file from which to read scans. Only works if scan_match_topic isn't provided.");
+  "Bag file from which to read scans.");
 DEFINE_string(
   lidar_topic,
   "/Cobot/Laser",
-  "topic within bag file which to read scans. Only works if scan_match_topic isn't provided.");
+  "topic within bag file which to read scans.");
+DEFINE_double(
+  trans_range,
+  2,
+  "The range of possible transformations to consider.");
+DEFINE_double(
+  laser_range,
+  30,
+  "The maximum range of scans.");
 DEFINE_bool(
   truncate_scan_angles,
   true,
   "If true, truncate angles of scans so we dont get artifacts at the ends from some scanners (default: true)");
 DEFINE_double(
   window,
-  0.0,
-  "The window around the base scan to search for matches, to compute avg uncertainty.");
+  1.5,
+  "The window (in time)  around each scan compare with, to compute avg uncertainty.");
+DEFINE_uint64(
+  comparisons,
+  10,
+  "The number of nearby scans to compare with, to compute avg uncertainty.");
 DEFINE_string(
   out_dir,
   "uncertainty_info",
   "folder in which to store images/uncertainty stats.");
 
-#define MAX_COMPARISONS 20
 
 void SignalHandler(int signum) {
   printf("Exiting with %d\n", signum);
@@ -94,7 +105,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   bag.close();
   printf("Done.\n");
   fflush(stdout);
-  CorrelativeScanMatcher matcher(2, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(FLAGS_laser_range, FLAGS_trans_range, 0.3, 0.03);
   std::cout << baseClouds.size() << std::endl;
   cimg_library::CImgDisplay display1;
   for (unsigned int i = 1; i < baseClouds.size(); i+=1) {
@@ -106,7 +117,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     display1.empty();
     display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
     string filename = out_dir + "/" + "cloud_" + std::to_string(baseTime) + ".jpeg";
-    high_res_lookup.GetDebugImage().normalize(0, 255).save_jpeg(filename.c_str());
+    high_res_lookup.GetDebugImage().normalize(0, 255).save_bmp(filename.c_str());
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
@@ -118,7 +129,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
     std::random_shuffle(comparisonIndices.begin(), comparisonIndices.end());
 
-    comparisonIndices.resize(MAX_COMPARISONS);
+    comparisonIndices.resize(FLAGS_comparisons);
 
     std::cout << "Comparisons: " << comparisonIndices.size() << std::endl;
 

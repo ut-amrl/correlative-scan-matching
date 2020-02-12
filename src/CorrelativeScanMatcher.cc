@@ -179,7 +179,6 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
                   const vector<Vector2f>& pointcloud_b) {
   double current_probability = 1.0;
   double best_probability = -INFINITY;
-  double smaller_range = 2;
   pair<Eigen::Vector2f, float> best_transformation;
   uint64_t low_res_width = (range_ * 2.0) / low_res_ + 1;
   boost::dynamic_bitset<> excluded_low_res(low_res_width * low_res_width);
@@ -189,7 +188,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  vector<pair<double, pair<Vector2f, float>>> low_res_costs = MemoizeLowRes(pointcloud_a, pointcloud_b_cost_low_res, low_res_, smaller_range);
+  vector<pair<double, pair<Vector2f, float>>> low_res_costs = MemoizeLowRes(pointcloud_a, pointcloud_b_cost_low_res, low_res_, trans_range_);
   #if DEBUG
   std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
@@ -223,16 +222,16 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
 
     double x_min_high_res =
       std::max(best_translation_low_res.cast<double>().x(),
-               -smaller_range);
+               -trans_range_);
     double x_max_high_res =
       std::min(best_translation_low_res.x() + low_res_,
-               smaller_range);
+               trans_range_);
     double y_min_high_res =
       std::max(best_translation_low_res.cast<double>().y(),
-               -smaller_range);
+               -trans_range_);
     double y_max_high_res =
       std::min(best_translation_low_res.y() + low_res_,
-               smaller_range);
+               trans_range_);
     
     #if DEBUG
     printf("Commencing High Res Search in window (%f, %f) (%f, %f) \n",
@@ -242,10 +241,10 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
            y_max_high_res);
     #endif
     
-    CHECK_LT(x_min_high_res, smaller_range);
-    CHECK_LT(y_min_high_res, smaller_range);
-    CHECK_GT(x_max_high_res, -smaller_range);
-    CHECK_GT(y_max_high_res, -smaller_range);
+    CHECK_LT(x_min_high_res, trans_range_);
+    CHECK_LT(y_min_high_res, trans_range_);
+    CHECK_GT(x_max_high_res, -trans_range_);
+    CHECK_GT(y_max_high_res, -trans_range_);
     double trans_x = best_translation_low_res.x();
     double trans_y = best_translation_low_res.y();
     if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(trans_x,
@@ -316,7 +315,6 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
   Eigen::Matrix3f K = Eigen::Matrix3f::Zero();
   Eigen::Vector3f u(0, 0, 0);
   double s = 0;
-  double smaller_range = 2;
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
@@ -325,17 +323,17 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
     MemoizeLowRes(pointcloud_a,
                   pointcloud_b_cost_low_res,
                   low_res_,
-                  smaller_range);
+                  trans_range_);
   printf("Calculating Uncertainty...\n");
   for (double rotation = 0; rotation < 2*M_PI; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_pointcloud_a =
             RotatePointcloud(pointcloud_a, rotation);
-    for (double x_trans = -smaller_range + EPSILON;
-         x_trans < smaller_range;
+    for (double x_trans = -trans_range_ + EPSILON;
+         x_trans < trans_range_;
          x_trans += low_res_) {
-      for (double y_trans = -smaller_range + EPSILON;
-          y_trans < smaller_range;
+      for (double y_trans = -trans_range_ + EPSILON;
+          y_trans < trans_range_;
           y_trans += low_res_) {
         // If this is a negligible amount of the total sum then just use the
         // low res cost, don't worry about the high res cost.

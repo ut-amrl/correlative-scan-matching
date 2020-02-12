@@ -30,6 +30,14 @@ DEFINE_string(
   lidar_topic,
   "/Cobot/Laser",
   "topic within bag file which to read scans. Only works if scan_match_topic isn't provided.");
+DEFINE_double(
+  trans_range,
+  2,
+  "The range of possible transformations to consider.");
+DEFINE_double(
+  laser_range,
+  30,
+  "The maximum range of scans.");
 DEFINE_bool(
   truncate_scan_angles,
   true,
@@ -102,7 +110,7 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
   printf("Done.\n");
   fflush(stdout);
 
-  CorrelativeScanMatcher matcher(30, 0.3, 0.03);
+  CorrelativeScanMatcher matcher(FLAGS_laser_range, FLAGS_trans_range, 0.3, 0.03);
 
   cimg_library::CImgDisplay display1;
   cimg_library::CImgDisplay display2;

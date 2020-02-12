@@ -127,9 +127,10 @@ struct LookupTable {
 class CorrelativeScanMatcher {
  public:
     CorrelativeScanMatcher(double scanner_range,
+                           double trans_range,
                            double low_res,
                            double high_res)
-    : range_(scanner_range), low_res_(low_res), high_res_(high_res) {}
+    : range_(scanner_range), trans_range_(trans_range), low_res_(low_res), high_res_(high_res) {}
     pair<double, pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,
                       const vector<Vector2f>& pointcloud_b);
@@ -162,6 +163,7 @@ class CorrelativeScanMatcher {
                                bool excluding,
                                const boost::dynamic_bitset<>& excluded);
     double range_;
+    double trans_range_;
     double low_res_;
     double high_res_;
 };
