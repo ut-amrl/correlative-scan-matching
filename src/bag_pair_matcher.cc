@@ -174,8 +174,8 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
     CImg<unsigned char> uncertainty_img(base_image_transformed.width(),base_image_transformed.height(), 1, 3, 0);
     const unsigned char color[] = { 0, 0, 255 };
     uncertainty_img.draw_ellipse(uncertainty_img.width()/2, uncertainty_img.height()/2, eigenvalues[0] * 50, eigenvalues[1] * 50, atan(eigenvectors.col(0)[1] / eigenvectors.col(0)[0]), color, 1.0);
-    std::cout << "Condition #: " << eigenvalues[1] / eigenvalues[0] << std::endl;
-    std::cout << "Maximum scale: " << eigenvalues[1] << std::endl;
+    std::cout << "Condition #: " << eigenvalues.maxCoeff() / eigenvalues.minCoeff() << std::endl;
+    std::cout << "Maximum scale: " << eigenvalues.maxCoeff() << std::endl;
     display2.display(uncertainty_img);
     base_image_transformed.draw_image(0, 0, uncertainty_img);
   }

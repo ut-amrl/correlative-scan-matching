@@ -383,7 +383,7 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  printf("Calculating Uncertainty given rotattion...\n");
+  printf("Calculating Uncertainty given rotation...\n");
   // Rotate the pointcloud by this rotation.
   const vector<Vector2f> rotated_pointcloud_a = RotatePointcloud(pointcloud_a, rotation);
   auto low_res_costs = MemoizeLowRes(pointcloud_a, pointcloud_b_cost_low_res, low_res_, trans_range_, rotation, rotation + EPSILON);

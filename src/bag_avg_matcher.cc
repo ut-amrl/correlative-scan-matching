@@ -138,12 +138,12 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
     for(auto idx : comparisonIndices) {
       std::vector<Vector2f> cloud = matchClouds[idx].second;
-      Eigen::Matrix3f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud);
-      Eigen::Vector3cf eigenvalues = uncertainty.eigenvalues();
-      std::vector<float> eigens{eigenvalues[0].real(), eigenvalues[1].real(), eigenvalues[2].real()};
-      std::sort(std::begin(eigens), std::end(eigens));
-      condition_avg += eigens[2] / eigens[0];
-      scale_avg += eigens[2];
+      std::pair<double, std::pair<Vector2f, float>> result = matcher.GetTransformation(baseCloud, cloud);
+      Eigen::Matrix2f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud, result.second.second);
+      Eigen::EigenSolver<Eigen::Matrix2f> es(uncertainty);
+      Eigen::Vector2f eigenvalues = es.eigenvalues().real();
+      condition_avg += eigenvalues.maxCoeff() / eigenvalues.minCoeff();
+      scale_avg += eigenvalues.maxCoeff();
     }
 
     condition_avg /= comparisonIndices.size();
