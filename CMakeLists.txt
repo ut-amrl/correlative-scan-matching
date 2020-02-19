@@ -54,18 +54,10 @@ ROSBUILD_ADD_EXECUTABLE(correlative_scan_bag_avg
                         src/pointcloud_helpers.cc
                         src/CorrelativeScanMatcher.cc)
 
-ROSBUILD_ADD_EXECUTABLE(correlative_scan_ros_matcher
-                        src/ros_topic_matcher.cc
-                        src/pointcloud_helpers.cc
-                        src/CorrelativeScanMatcher.cc)
-
 TARGET_LINK_LIBRARIES(correlative_scan_match_pair
                       ${libs}
                       ${CERES_LIBRARIES})
 TARGET_LINK_LIBRARIES(correlative_scan_bag_avg
-                      ${libs}
-                      ${CERES_LIBRARIES})
-TARGET_LINK_LIBRARIES(correlative_scan_ros_matcher
                       ${libs}
                       ${CERES_LIBRARIES})
 

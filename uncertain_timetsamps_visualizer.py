@@ -31,7 +31,7 @@ for name in tqdm(stats_files):
 
     print("Condition: ", condition)
     print("Scale: ", scale)
-    img = Image.open(os.path.join(opt.uncertainty_info, 'cloud_' + timestamp + '.jpeg'))
+    img = Image.open(os.path.join(opt.uncertainty_info, 'cloud_' + timestamp + '.bmp'))
     img.show()
     time.sleep(3)
     img.close()

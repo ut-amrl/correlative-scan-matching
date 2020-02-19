@@ -5,20 +5,16 @@
 #include <iostream>
 #include <iterator>
 
-#include "ros/node_handle.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "rosbag/bag.h"
 #include "rosbag/view.h"
-#include "CorrelativeScanMatching/CorrScanMatchInputMsg.h"
 #include "Eigen/Dense"
 #include "pointcloud_helpers.h"
 #include "CorrelativeScanMatcher.h"
 
 using std::string;
 using std::vector;
-using CorrelativeScanMatching::CorrScanMatchInputMsgConstPtr;
-using CorrelativeScanMatching::CorrScanMatchInputMsg;
 using sensor_msgs::PointCloud2;
 using Eigen::Vector2f;
 
