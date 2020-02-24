@@ -18,6 +18,8 @@ using std::vector;
 using sensor_msgs::PointCloud2;
 using Eigen::Vector2f;
 
+#define DEBUG false
+
 DEFINE_string(
   bag_file,
   "",
@@ -88,8 +90,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
         // Process the laser scan. Here we take all "even" seconds as base scans
         double scan_time = (laser_scan->header.stamp).toSec();
-        if (scan_time > window && scan_time - floor(scan_time) < 1e-2 && int(floor(scan_time)) % 2 == 0) {
-          printf("Found Base Scan %f\n", scan_time);
+        if (scan_time > window && scan_time - floor(scan_time) < 1e-2) {
           std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
           baseClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
         } else {
@@ -103,9 +104,13 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   printf("Done.\n");
   fflush(stdout);
   CorrelativeScanMatcher matcher(FLAGS_laser_range, FLAGS_trans_range, 0.3, 0.03);
+  #if DEBUG
   std::cout << baseClouds.size() << std::endl;
   cimg_library::CImgDisplay display1;
-  for (unsigned int i = 1; i < baseClouds.size(); i+=1) {
+  #endif
+
+  #pragma omp parallel for
+  for (unsigned int i = 1; i < baseClouds.size(); i++) {
     double baseTime = baseClouds[i].first;
     char timestamp[20];
     sprintf(timestamp, "%.5f", baseTime);
@@ -113,8 +118,11 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     double scale_avg = 0.0;
     std::vector<Vector2f> baseCloud = baseClouds[i].second;
     LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
+    #if DEBUG
     display1.empty();
     display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
+    #endif
+    printf("Processing Base Scan: %s\n", timestamp);
     string filename = out_dir + "/" + "cloud_" + timestamp + ".bmp";
     high_res_lookup.GetDebugImage().normalize(0, 255).save_bmp(filename.c_str());
 
@@ -130,8 +138,6 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
     comparisonIndices.resize(FLAGS_comparisons);
 
-    std::cout << "Comparisons: " << comparisonIndices.size() << std::endl;
-
     for(auto idx : comparisonIndices) {
       std::vector<Vector2f> cloud = matchClouds[idx].second;
       std::pair<double, std::pair<Vector2f, float>> result = matcher.GetTransformation(baseCloud, cloud);
@@ -145,8 +151,10 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     condition_avg /= comparisonIndices.size();
     scale_avg /= comparisonIndices.size();
 
+    #if DEBUG
     std::cout << "Average Condition #: " << condition_avg << std::endl;
     std::cout << "Average Scale: " << scale_avg << std::endl;
+    #endif
 
     filename = out_dir + "/" + "stats_" + timestamp + ".txt";
     std::ofstream stats_write(filename.c_str());
@@ -154,6 +162,8 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     stats_write << scale_avg << std::endl;
     stats_write.close();
   }
+
+  std::cout << "Processed " << baseClouds.size() << " Base Scans." << std::endl;
 }
 
 int main(int argc, char** argv) {
