@@ -40,6 +40,10 @@ DEFINE_bool(
   truncate_scan_angles,
   true,
   "If true, truncate angles of scans so we dont get artifacts at the ends from some scanners (default: true)");
+DEFINE_bool(
+  output_images,
+  false,
+  "If true, output bmp images in addition to statistics for each timing (default: false)");
 DEFINE_double(
   window,
   1.5,
@@ -123,8 +127,10 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
     #endif
     printf("Processing Base Scan: %s\n", timestamp);
-    string filename = out_dir + "/" + "cloud_" + timestamp + ".bmp";
-    high_res_lookup.GetDebugImage().normalize(0, 255).save_bmp(filename.c_str());
+    if (FLAGS_output_images) {
+      string filename = out_dir + "/" + "cloud_" + timestamp + ".bmp";
+      high_res_lookup.GetDebugImage().normalize(0, 255).save_bmp(filename.c_str());
+    }
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
@@ -156,8 +162,8 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     std::cout << "Average Scale: " << scale_avg << std::endl;
     #endif
 
-    filename = out_dir + "/" + "stats_" + timestamp + ".txt";
-    std::ofstream stats_write(filename.c_str());
+    string txt_filename = out_dir + "/" + "stats_" + timestamp + ".txt";
+    std::ofstream stats_write(txt_filename.c_str());
     stats_write << condition_avg << std::endl;
     stats_write << scale_avg << std::endl;
     stats_write.close();
