@@ -56,6 +56,11 @@ DEFINE_string(
   out_dir,
   "uncertainty_info",
   "folder in which to store images/uncertainty stats.");
+DEFINE_uint64(
+  base_clouds,
+  200,
+  "The maximum number of base clouds to evaluate."
+);
 
 
 void SignalHandler(int signum) {
@@ -64,10 +69,9 @@ void SignalHandler(int signum) {
   exit(0);
 }
 
-void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
+void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double window, string out_dir) {
   printf("Loading bag file... ");
-  std::vector<std::pair<double, std::vector<Vector2f>>> baseClouds;
-  std::vector<std::pair<double, std::vector<Vector2f>>> matchClouds;
+  std::vector<std::pair<double, std::vector<Vector2f>>> clouds;
   rosbag::Bag bag;
   try {
     bag.open(bag_path, rosbag::bagmode::Read);
@@ -92,15 +96,9 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
               message.instantiate<sensor_msgs::LaserScan>();
       if (laser_scan != nullptr) {
 
-        // Process the laser scan. Here we take all "even" seconds as base scans
         double scan_time = (laser_scan->header.stamp).toSec();
-        if (scan_time > window && scan_time - floor(scan_time) < 1e-2) {
-          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
-          baseClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
-        } else {
-          std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
-          matchClouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
-        }
+        std::vector<Vector2f> cloud = pointcloud_helpers::LaserScanToPointCloud(*laser_scan, laser_scan->range_max, FLAGS_truncate_scan_angles);
+        clouds.push_back(std::pair<double, std::vector<Vector2f>>(scan_time, cloud));
       }
     }
   }
@@ -109,18 +107,20 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
   fflush(stdout);
   CorrelativeScanMatcher matcher(FLAGS_laser_range, FLAGS_trans_range, 0.3, 0.03);
   #if DEBUG
-  std::cout << baseClouds.size() << std::endl;
+  std::cout << clouds.size() << std::endl;
   cimg_library::CImgDisplay display1;
   #endif
 
+  std::random_shuffle(clouds.begin(), clouds.end());
+
   #pragma omp parallel for
-  for (unsigned int i = 1; i < baseClouds.size(); i++) {
-    double baseTime = baseClouds[i].first;
+  for (unsigned int i = 0; i < base_clouds; i++) {
+    double baseTime = clouds[i].first;
     char timestamp[20];
     sprintf(timestamp, "%.5f", baseTime);
     double condition_avg = 0.0;
     double scale_avg = 0.0;
-    std::vector<Vector2f> baseCloud = baseClouds[i].second;
+    std::vector<Vector2f> baseCloud = clouds[i].second;
     LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
     #if DEBUG
     display1.empty();
@@ -134,8 +134,8 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
-    for (unsigned int j = 0; j <= matchClouds.size(); j++) {
-      if (abs(matchClouds[j].first - baseTime) < window) {
+    for (unsigned int j = 0; j <= clouds.size(); j++) {
+      if (abs(clouds[j].first - baseTime) < window) {
         comparisonIndices.push_back(j);
       }
     }
@@ -145,7 +145,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     comparisonIndices.resize(FLAGS_comparisons);
 
     for(auto idx : comparisonIndices) {
-      std::vector<Vector2f> cloud = matchClouds[idx].second;
+      std::vector<Vector2f> cloud = clouds[idx].second;
       std::pair<double, std::pair<Vector2f, float>> result = matcher.GetTransformation(baseCloud, cloud);
       Eigen::Matrix2f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud, result.second.second);
       Eigen::EigenSolver<Eigen::Matrix2f> es(uncertainty);
@@ -169,7 +169,7 @@ void bag_uncertainty_calc(string bag_path, double window, string out_dir) {
     stats_write.close();
   }
 
-  std::cout << "Processed " << baseClouds.size() << " Base Scans." << std::endl;
+  std::cout << "Processed " << base_clouds << " Base Scans." << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
   signal(SIGINT, SignalHandler);
   // Load and pre-process the data.
   if (FLAGS_bag_file.compare("") != 0 && FLAGS_lidar_topic.compare("") != 0 && FLAGS_window != 0.0 && FLAGS_out_dir.compare("") != 0) {
-    bag_uncertainty_calc(FLAGS_bag_file, FLAGS_window, FLAGS_out_dir);
+    bag_uncertainty_calc(FLAGS_bag_file, FLAGS_base_clouds, FLAGS_window, FLAGS_out_dir);
   } else {
     std::cout << "Must specify bag file, lidar topic, window, and output path!" << std::endl;
     exit(0);
