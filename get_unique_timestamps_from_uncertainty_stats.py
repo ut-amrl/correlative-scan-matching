@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--uncertainty_info', type=str, required=True, help="folder containing uncertainty info")
 parser.add_argument('--output_file', type=str, default='labeled_timestamps.npy', help="file in which to store numpy array containing timestamps and labels");
 parser.add_argument('--condition_threshold', type=int, default=10, help="threshold above which we consider scans locally ambiguous")
-parser.add_argument('--scale_threshold', type=int, default=.25, help="threshold above which we consider scans locally ambiguous")
+parser.add_argument('--scale_threshold', type=float, default=.25, help="threshold above which we consider scans locally ambiguous")
 opt = parser.parse_args()
 start_time = str(int(time.time()))
 print(opt)
