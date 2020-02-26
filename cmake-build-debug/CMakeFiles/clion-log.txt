@@ -1,0 +1,108 @@
+/home/jack/Dev/Tools/clion-2019.3.1/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/jack/Dev/Lab/CorrelativeScanMatching
+-- The C compiler identification is GNU 7.4.0
+-- The CXX compiler identification is GNU 7.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Compiling Lidar SLAM Implementation
+-- Using compiler: /usr/bin/c++
+-- Build Type: Debug
+-- Arch: x86_64
+-- Additional Flags for Debug mode
+-- Found installed version of Eigen: /usr/local/share/eigen3/cmake
+-- Found required Ceres dependency: Eigen version 3.3.7 in /usr/local/include/eigen3
+-- Found required Ceres dependency: glog
+-- Found installed version of gflags: /usr/lib/x86_64-linux-gnu/cmake/gflags
+-- Detected gflags version: 2.2.1
+-- Found required Ceres dependency: gflags
+-- Found Ceres version: 1.14.0 installed in: /usr/local with components: [EigenSparse, SparseLinearAlgebraLibrary, LAPACK, SuiteSparse, CXSparse, SchurSpecializations, OpenMP, Multithreading]
+-- Found OpenCV: /usr/local (found version "4.1.0") 
+CMake Deprecation Warning at /opt/ros/melodic/share/ros/core/rosbuild/rosbuild.cmake:7 (cmake_policy):
+  The OLD behavior for policy CMP0011 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+Call Stack (most recent call first):
+  CMakeLists.txt:30 (INCLUDE)
+
+
+CMake Deprecation Warning at /opt/ros/melodic/share/ros/core/rosbuild/rosbuild.cmake:16 (cmake_policy):
+  The OLD behavior for policy CMP0002 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+Call Stack (most recent call first):
+  CMakeLists.txt:30 (INCLUDE)
+
+
+CMake Deprecation Warning at /opt/ros/melodic/share/ros/core/rosbuild/rosbuild.cmake:18 (cmake_policy):
+  The OLD behavior for policy CMP0003 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+Call Stack (most recent call first):
+  CMakeLists.txt:30 (INCLUDE)
+
+
+CMake Deprecation Warning at /opt/ros/melodic/share/ros/core/rosbuild/rosbuild.cmake:20 (cmake_policy):
+  The OLD behavior for policy CMP0005 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+Call Stack (most recent call first):
+  CMakeLists.txt:30 (INCLUDE)
+
+
+CMake Deprecation Warning at /opt/ros/melodic/share/ros/core/rosbuild/rosbuild.cmake:23 (cmake_policy):
+  The OLD behavior for policy CMP0011 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+Call Stack (most recent call first):
+  CMakeLists.txt:30 (INCLUDE)
+
+
+-- Found PythonInterp: /usr/bin/python (found version "2.7.17") 
+[rosbuild] Building package CorrelativeScanMatching
+[rosbuild] Error from directory check: /opt/ros/melodic/share/ros/core/rosbuild/bin/check_same_directories.py  /home/jack/Dev/Lab/CorrelativeScanMatching
+1
+Traceback (most recent call last):
+  File "/opt/ros/melodic/share/ros/core/rosbuild/bin/check_same_directories.py", line 46, in <module>
+    raise Exception
+Exception
+CMake Error at /opt/ros/melodic/share/ros/core/rosbuild/private.cmake:102 (message):
+  [rosbuild] rospack found package "CorrelativeScanMatching" at "", but the
+  current directory is "/home/jack/Dev/Lab/CorrelativeScanMatching".  You
+  should double-check your ROS_PACKAGE_PATH to ensure that packages are found
+  in the correct precedence order.
+Call Stack (most recent call first):
+  /opt/ros/melodic/share/ros/core/rosbuild/public.cmake:177 (_rosbuild_check_package_location)
+  CMakeLists.txt:32 (rosbuild_init)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/home/jack/Dev/Lab/CorrelativeScanMatching/cmake-build-debug/CMakeFiles/CMakeOutput.log".

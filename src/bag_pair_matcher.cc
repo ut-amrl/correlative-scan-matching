@@ -55,6 +55,17 @@ void SignalHandler(int signum) {
   exit(0);
 }
 
+vector<Vector2f> TransformPointcloud(const vector<Vector2f>& pointcloud,
+                                     const pair<Vector2f, float>& trans) {
+  vector<Vector2f> new_pointcloud;
+  Eigen::Affine2f transformation =
+          Eigen::Translation2f(trans.first) * Eigen::Rotation2Df(trans.second);
+  for (const Vector2f& point : pointcloud) {
+    new_pointcloud.push_back(transformation * point);
+  }
+  return new_pointcloud;
+}
+
 // Given 2 scans calculate relative transformation & uncertainty
 void scan_match_bag_file(string bag_path, string lidar_topic, double base_timestamp, double match_timestamp, bool truncate_scan_angles, bool calc_uncertainty) {
   printf("Loading bag file... ");
@@ -169,6 +180,12 @@ void scan_match_bag_file(string bag_path, string lidar_topic, double base_timest
     std::cout << "Condition #: " << eigens[2] / eigens[0] << std::endl;
     std::cout << "Maximum scale: " << eigens[2] << std::endl;
   }
+
+  // Calculate if the pair is similar or not.
+  if (matcher.SimilarScans(baseTransformed, matchCloud, 0.99)) {
+    std::cout << "Similar scans" << std::endl;
+  }
+  std::cout << "Different scans" << std::endl;
 
   // Wait for the windows to close
   while (!display1.is_closed() && !display2.is_closed()) {
