@@ -126,8 +126,8 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
     #if DEBUG
     display1.empty();
     display1.display(high_res_lookup.GetDebugImage().resize_doubleXY());
-    #endif
     printf("Processing Base Scan: %s\n", timestamp);
+    #endif
     if (FLAGS_output_images) {
       string filename = out_dir + "/" + "cloud_" + timestamp + ".bmp";
       high_res_lookup.GetDebugImage().normalize(0, 255).save_bmp(filename.c_str());
