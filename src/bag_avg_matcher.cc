@@ -113,7 +113,8 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
 
   std::random_shuffle(clouds.begin(), clouds.end());
 
-  #pragma omp parallel for
+  std::vector<std::pair<string, std::pair<double, double>>> stats; 
+  #pragma omp parallel for shared(stats)
   for (unsigned int i = 0; i < base_clouds; i++) {
     double baseTime = clouds[i].first;
     char timestamp[20];
@@ -162,12 +163,15 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
     std::cout << "Average Scale: " << scale_avg << std::endl;
     #endif
 
-    string txt_filename = out_dir + "/" + "stats_" + timestamp + ".txt";
-    std::ofstream stats_write(txt_filename.c_str());
-    stats_write << condition_avg << std::endl;
-    stats_write << scale_avg << std::endl;
-    stats_write.close();
+    stats.emplace_back(timestamp, std::make_pair(condition_avg, scale_avg));
   }
+
+  string txt_filename = out_dir + "/local_uncertainty_stats.txt";
+  std::ofstream stats_write(txt_filename.c_str());
+  for(auto s : stats) {
+    stats_write << s.first << ": " << s.second.first << ", " << s.second.second << std::endl;
+  }
+  stats_write.close();
 
   std::cout << "Processed " << base_clouds << " Base Scans." << std::endl;
 }
