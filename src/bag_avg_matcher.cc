@@ -62,6 +62,7 @@ DEFINE_uint64(
   "The maximum number of base clouds to evaluate."
 );
 
+#define MAX_WINDOW_DISTANCE 2000
 
 void SignalHandler(int signum) {
   printf("Exiting with %d\n", signum);
@@ -106,16 +107,21 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
   printf("Done.\n");
   fflush(stdout);
   CorrelativeScanMatcher matcher(FLAGS_laser_range, FLAGS_trans_range, 0.3, 0.03);
+  int skip_amt = floor(clouds.size() / base_clouds);
+
   #if DEBUG
   std::cout << clouds.size() << std::endl;
   cimg_library::CImgDisplay display1;
   #endif
-
-  std::random_shuffle(clouds.begin(), clouds.end());
+  std::cout << "Processing 1 out of every " << skip_amt << " scans." << std::endl;
+  // #endif
 
   std::vector<std::pair<string, std::pair<double, double>>> stats; 
   #pragma omp parallel for shared(stats)
-  for (unsigned int i = 0; i < base_clouds; i++) {
+  for (unsigned int i = 0; i < clouds.size(); i+= skip_amt) {
+    if (i % 100 == 0) {
+      printf("Processing index %u of about %u.\n", i, base_clouds);
+    }
     double baseTime = clouds[i].first;
     char timestamp[20];
     sprintf(timestamp, "%.5f", baseTime);
@@ -135,7 +141,7 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
-    for (unsigned int j = 0; j <= clouds.size(); j++) {
+    for (unsigned int j = 0; j < clouds.size(); j++) {
       if (abs(clouds[j].first - baseTime) < window) {
         comparisonIndices.push_back(j);
       }
