@@ -16,15 +16,18 @@ opt = parser.parse_args()
 start_time = str(int(time.time()))
 print(opt)
 
-stats_files = glob(os.path.join(opt.uncertainty_info, 'stats_*.txt'))
+stats_file = os.path.join(opt.uncertainty_info, 'local_uncertainty_stats.txt')
 
 timestamps = []
 positive = 0
-for s in tqdm(stats_files):
-    timestamp = s[s.find('stats_') + len('stats_'):s.find('.txt')]
-    with open(s) as f:
-        condition = float(f.readline().strip())
-        scale = float(f.readline().strip())
+with open(stats_file) as f:
+    for line in tqdm(f.readlines()):
+        line = line.strip()
+        timestamp, vals = line.split(': ')
+        # timestamp = s[s.find('stats_') + len('stats_'):s.find('.txt')]
+        condition, scale = vals.split(', ')
+        condition = float(condition)
+        scale = float(scale)
 
         if condition < opt.condition_threshold and scale < opt.scale_threshold:
             timestamps.append((timestamp, 1))
