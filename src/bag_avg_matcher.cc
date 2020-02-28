@@ -62,7 +62,6 @@ DEFINE_uint64(
   "The maximum number of base clouds to evaluate."
 );
 
-#define MAX_WINDOW_DISTANCE 2000
 
 void SignalHandler(int signum) {
   printf("Exiting with %d\n", signum);
@@ -104,24 +103,18 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
     }
   }
   bag.close();
-  printf("Done.\n");
   fflush(stdout);
   CorrelativeScanMatcher matcher(FLAGS_laser_range, FLAGS_trans_range, 0.3, 0.03);
-  int skip_amt = floor(clouds.size() / base_clouds);
-
   #if DEBUG
   std::cout << clouds.size() << std::endl;
   cimg_library::CImgDisplay display1;
   #endif
-  std::cout << "Processing 1 out of every " << skip_amt << " scans." << std::endl;
-  // #endif
 
-  std::vector<std::pair<string, std::pair<double, double>>> stats; 
-  #pragma omp parallel for shared(stats)
-  for (unsigned int i = 0; i < clouds.size(); i+= skip_amt) {
-    if (i % 100 == 0) {
-      printf("Processing index %u of about %u.\n", i, base_clouds);
-    }
+  std::random_shuffle(clouds.begin(), clouds.end());
+  unsigned int processed_count = 0;
+  #pragma omp parallel for shared(processed_count)
+  for (unsigned int i = 0; i < base_clouds; i++) {
+
     double baseTime = clouds[i].first;
     char timestamp[20];
     sprintf(timestamp, "%.5f", baseTime);
@@ -141,7 +134,7 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
 
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
-    for (unsigned int j = 0; j < clouds.size(); j++) {
+    for (unsigned int j = 0; j <= clouds.size(); j++) {
       if (abs(clouds[j].first - baseTime) < window) {
         comparisonIndices.push_back(j);
       }
@@ -169,15 +162,17 @@ void bag_uncertainty_calc(string bag_path, unsigned int base_clouds, double wind
     std::cout << "Average Scale: " << scale_avg << std::endl;
     #endif
 
-    stats.emplace_back(timestamp, std::make_pair(condition_avg, scale_avg));
-  }
+    string txt_filename = out_dir + "/" + "stats_" + timestamp + ".txt";
+    std::ofstream stats_write(txt_filename.c_str());
+    stats_write << condition_avg << std::endl;
+    stats_write << scale_avg << std::endl;
+    stats_write.close();
 
-  string txt_filename = out_dir + "/local_uncertainty_stats.txt";
-  std::ofstream stats_write(txt_filename.c_str());
-  for(auto s : stats) {
-    stats_write << s.first << ": " << s.second.first << ", " << s.second.second << std::endl;
+    processed_count++;
+    if (processed_count % 50 == 0) {
+      printf("Processed %u scans of %u.\n", processed_count, base_clouds);
+    }
   }
-  stats_write.close();
 
   std::cout << "Processed " << base_clouds << " Base Scans." << std::endl;
 }
