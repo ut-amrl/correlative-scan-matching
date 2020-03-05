@@ -30,10 +30,10 @@ with open(stats_file) as f:
         scale = float(scale)
 
         if condition < opt.condition_threshold and scale < opt.scale_threshold:
-            timestamps.append((timestamp, 1))
+            timestamps.append((timestamp, 1, condition, scale))
             positive += 1
         else:
-            timestamps.append((timestamp, 0))
+            timestamps.append((timestamp, 0, condition, scale))
 
 print("Positive Examples:", positive)
 
