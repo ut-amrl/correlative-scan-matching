@@ -24,6 +24,9 @@ FilterGlancing(const float angle_min,
                const float angle_step,
                const vector<pair<size_t, Vector2f>> indexed_pointcloud) {
   vector<Vector2f> pointcloud;
+  if (indexed_pointcloud.size() == 0) {
+    return pointcloud;
+  }
   CHECK_GE(indexed_pointcloud.size(), 1);
   Vector2f last_point = indexed_pointcloud[0].second;
   // Throw out points that have a big distance between them and the last point,
