@@ -153,10 +153,7 @@ void bag_uncertainty_calc(const string bag_path, const unsigned int base_clouds,
       comparisonClouds.push_back(clouds[idx].second);
     }
 
-    comparisonClouds.push_back(baseCloud);
-
-
-    stats[idx] = std::make_pair(timestamp, matcher.GetLocalUncertaintyStats(comparisonClouds));
+    stats[idx] = std::make_pair(timestamp, matcher.GetLocalUncertaintyStats(comparisonClouds, baseCloud));
 
     #if DEBUG
     std::cout << "Average Condition #: " << stats[idx].first << std::endl;
