@@ -423,3 +423,26 @@ GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
   Eigen::Matrix2f uncertainty = (1.0/s) * K - (1.0/(s*s)) * u * u.transpose();
   return uncertainty;
 }
+
+std::pair<double, double> CorrelativeScanMatcher::GetLocalUncertaintyStats(const vector<vector<Vector2f>>& pointclouds) {
+  vector<Vector2f> targetCloud = pointclouds[pointclouds.size() - 1];
+
+  double condition_avg = 0.0;
+  double scale_avg = 0.0;
+  // Iterate over scans up to the one *before* targetCloud
+  #pragma omp parallel for
+  for(size_t i = 0; i < pointclouds.size() - 1; i++) {
+    vector<Vector2f> comparisonCloud = pointclouds[i];
+    std::pair<double, std::pair<Vector2f, float>> result = GetTransformation(targetCloud, comparisonCloud);
+    Eigen::Matrix2f uncertainty = GetUncertaintyMatrix(targetCloud, comparisonCloud, result.second.second);
+    Eigen::EigenSolver<Eigen::Matrix2f> es(uncertainty);
+    Eigen::Vector2f eigenvalues = es.eigenvalues().real();
+    condition_avg += eigenvalues.maxCoeff() / eigenvalues.minCoeff();
+    scale_avg += eigenvalues.maxCoeff();
+  }
+
+  condition_avg /= (pointclouds.size() - 1);
+  scale_avg /= (pointclouds.size() - 1);
+
+  return std::make_pair(condition_avg, scale_avg);
+}

@@ -144,6 +144,8 @@ class CorrelativeScanMatcher {
     Eigen::Matrix2f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
                                          const vector<Vector2f>& pointcloud_b,
                                          const double rotation);
+    // Computes the local uncertainty of the *last* scan in the provided vector of point clouds, relative to the previous ones
+    std::pair<double, double> GetLocalUncertaintyStats(const vector<vector<Vector2f>>& pointclouds);
     LookupTable GetLookupTableHighRes(const vector<Vector2f>& pointcloud);
     LookupTable GetLookupTableLowRes(const LookupTable& high_res_table);
 

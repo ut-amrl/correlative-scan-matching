@@ -124,8 +124,6 @@ void bag_uncertainty_calc(const string bag_path, const unsigned int base_clouds,
     double baseTime = clouds[i].first;
     char timestamp[20];
     sprintf(timestamp, "%.5f", baseTime);
-    double condition_avg = 0.0;
-    double scale_avg = 0.0;
     std::vector<Vector2f> baseCloud = clouds[i].second;
     LookupTable high_res_lookup = matcher.GetLookupTableHighRes(baseCloud);
     #if DEBUG
@@ -141,7 +139,7 @@ void bag_uncertainty_calc(const string bag_path, const unsigned int base_clouds,
     std::vector<int> comparisonIndices;
     // Find the list of "other" clouds within the base cloud's window.
     for (unsigned int j = 0; j < clouds.size(); j++) {
-      if (abs(clouds[j].first - baseTime) < window) {
+      if (baseTime - clouds[j].first < window && baseTime - clouds[j].first > 0) {
         comparisonIndices.push_back(j);
       }
     }
@@ -150,25 +148,21 @@ void bag_uncertainty_calc(const string bag_path, const unsigned int base_clouds,
 
     comparisonIndices.resize(FLAGS_comparisons);
 
+    std::vector<std::vector<Vector2f>> comparisonClouds;
     for(auto idx : comparisonIndices) {
-      std::vector<Vector2f> cloud = clouds[idx].second;
-      std::pair<double, std::pair<Vector2f, float>> result = matcher.GetTransformation(baseCloud, cloud);
-      Eigen::Matrix2f uncertainty = matcher.GetUncertaintyMatrix(baseCloud, cloud, result.second.second);
-      Eigen::EigenSolver<Eigen::Matrix2f> es(uncertainty);
-      Eigen::Vector2f eigenvalues = es.eigenvalues().real();
-      condition_avg += eigenvalues.maxCoeff() / eigenvalues.minCoeff();
-      scale_avg += eigenvalues.maxCoeff();
+      comparisonClouds.push_back(clouds[idx].second);
     }
 
-    condition_avg /= comparisonIndices.size();
-    scale_avg /= comparisonIndices.size();
+    comparisonClouds.push_back(baseCloud);
+
+
+    stats[idx] = std::make_pair(timestamp, matcher.GetLocalUncertaintyStats(comparisonClouds));
 
     #if DEBUG
-    std::cout << "Average Condition #: " << condition_avg << std::endl;
-    std::cout << "Average Scale: " << scale_avg << std::endl;
+    std::cout << "Average Condition #: " << stats[idx].first << std::endl;
+    std::cout << "Average Scale: " << stats[idx].second << std::endl;
     #endif
 
-    stats[idx] = make_pair(timestamp, std::make_pair(condition_avg, scale_avg));
     processed_count++;
     if (processed_count % 50 == 0) {
       std::cout << "Processed " << processed_count << " scans out of " << base_clouds << std::endl;
