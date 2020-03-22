@@ -5,11 +5,8 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include "Eigen/Dense"
-#include "ros/ros.h"
-#include "sensor_msgs/PointCloud2.h"
 
 #include "./CImg.h"
-#include "./pointcloud_helpers.h"
 
 #define UNCERTAINTY_USELESS_THRESHOLD log(1e-4)
 #define DEBUG false
@@ -17,8 +14,6 @@
 using std::vector;
 using std::pair;
 using Eigen::Vector2f;
-
-using sensor_msgs::PointCloud2;
 
 #define EPSILON 1e-6
 
