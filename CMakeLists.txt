@@ -45,22 +45,27 @@ rosbuild_genmsg()
 
 SET(libs roslib roscpp rosbag console_bridge cv_bridge gflags glog boost_system m X11 OpenMP::OpenMP_CXX)
 
-ROSBUILD_ADD_EXECUTABLE(correlative_scan_match_pair
-                        src/bag_pair_matcher.cc
-                        src/pointcloud_helpers.cc
-                        src/CorrelativeScanMatcher.cc)
-
-ROSBUILD_ADD_EXECUTABLE(correlative_scan_bag_avg
-                        src/bag_avg_matcher.cc
-                        src/pointcloud_helpers.cc
-                        src/CorrelativeScanMatcher.cc)
-
-TARGET_LINK_LIBRARIES(correlative_scan_match_pair
-                      ${libs}
-                      ${CERES_LIBRARIES})
-TARGET_LINK_LIBRARIES(correlative_scan_bag_avg
-                      ${libs}
-                      ${CERES_LIBRARIES})
+IF (CSM_LIBRARY)
+    add_library(csm src/CorrelativeScanMatcher.cc
+                    src/pointcloud_helpers.cc)
+ELSE()
+    ROSBUILD_ADD_EXECUTABLE(correlative_scan_match_pair
+                            src/bag_pair_matcher.cc
+                            src/pointcloud_helpers.cc
+                            src/CorrelativeScanMatcher.cc)
+    
+    ROSBUILD_ADD_EXECUTABLE(correlative_scan_bag_avg
+                            src/bag_avg_matcher.cc
+                            src/pointcloud_helpers.cc
+                            src/CorrelativeScanMatcher.cc)
+    
+    TARGET_LINK_LIBRARIES(correlative_scan_match_pair
+                          ${libs}
+                          ${CERES_LIBRARIES})
+    TARGET_LINK_LIBRARIES(correlative_scan_bag_avg
+                          ${libs}
+                          ${CERES_LIBRARIES})
+ENDIF()
 
 if (TESTING)
   enable_testing()
