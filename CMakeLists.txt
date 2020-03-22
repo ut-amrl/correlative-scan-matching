@@ -25,9 +25,14 @@ ENDIF()
 FIND_PACKAGE(OpenCV REQUIRED)
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
 FIND_PACKAGE(OpenMP REQUIRED)
+
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+
 IF (CSM_LIBRARY)
     SET(libs gflags glog boost_system m X11 OpenMP::OpenMP_CXX)
-    add_library(csm src/CorrelativeScanMatcher.cc)
+    ADD_LIBRARY(csm src/CorrelativeScanMatcher.cc)
+    TARGET_LINK_LIBRARIES(csm ${LIBS})
 ELSE()
     INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
     
@@ -39,8 +44,6 @@ ELSE()
     MESSAGE(STATUS "ROS-Overrride Build Type: ${CMAKE_BUILD_TYPE}")
     MESSAGE(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
     
-    SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-    SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
     
     rosbuild_genmsg()
     SET(libs roslib roscpp rosbag console_bridge cv_bridge gflags glog boost_system m X11 OpenMP::OpenMP_CXX)
