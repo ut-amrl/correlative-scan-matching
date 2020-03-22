@@ -12,9 +12,6 @@
 #include <utility>
 
 #include <boost/dynamic_bitset.hpp>
-#include "sensor_msgs/Image.h"
-#include "sensor_msgs/image_encodings.h"
-#include "ros/ros.h"
 #include "Eigen/Dense"
 
 #include "./CImg.h"
@@ -25,7 +22,6 @@
 using std::vector;
 using std::pair;
 using Eigen::Vector2f;
-using sensor_msgs::Image;
 using cimg_library::CImg;
 
 struct LookupTable {
