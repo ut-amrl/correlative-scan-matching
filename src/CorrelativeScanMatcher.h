@@ -133,12 +133,15 @@ class CorrelativeScanMatcher {
     : range_(scanner_range), trans_range_(trans_range), low_res_(low_res), high_res_(high_res) {}
     pair<double, pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,
-                      const vector<Vector2f>& pointcloud_b);
+                      const vector<Vector2f>& pointcloud_b,
+                      const double rotation_min = 0,
+                      const double rotation_max = 2 * M_PI);
     pair<double, pair<Eigen::Vector2f, float>>
     GetTransformation(const vector<Vector2f>& pointcloud_a,
                       const vector<Vector2f>& pointcloud_b,
                       const double rotation_a,
-                      const double rotation_b);
+                      const double rotation_b,
+                      const double rotation_restriction);
     Eigen::Matrix3f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
                                          const vector<Vector2f>& pointcloud_b);
     Eigen::Matrix2f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
@@ -160,9 +163,7 @@ class CorrelativeScanMatcher {
                                double x_max,
                                double y_min,
                                double y_max,
-                               double rotation,
-                               bool excluding,
-                               const boost::dynamic_bitset<>& excluded);
+                               double rotation);
     double range_;
     double trans_range_;
     double low_res_;

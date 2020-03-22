@@ -93,14 +93,14 @@ MemoizeLowRes(const vector<Vector2f>& query_scan,
               const LookupTable& low_res_table,
               const double resolution,
               const double range,
-              const double rotation_min,
-              const double rotation_max) {
+              const double restrict_rotation_min,
+              const double restrict_rotation_max) {
   typedef pair<double, pair<Vector2f, float>> TransProb;
   vector<TransProb> low_res_costs(low_res_table.AbsCoords(range, range) + 1,
                                   std::make_pair(-INFINITY,
                                                  std::make_pair(Vector2f(0,0),
                                                                 0)));
-  for (double rotation = rotation_min; rotation < rotation_max; rotation += M_PI / 180) {
+  for (double rotation = restrict_rotation_min; rotation < restrict_rotation_max; rotation += M_PI / 180) {
     // Rotate the pointcloud by this rotation.
     const vector<Vector2f> rotated_query =
             RotatePointcloud(query_scan, rotation);
@@ -140,20 +140,13 @@ GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
                          double x_max,
                          double y_min,
                          double y_max,
-                         double rotation,
-                         bool excluding,
-                         const boost::dynamic_bitset<>& excluded) {
+                         double rotation) {
   pair<Eigen::Vector2f, float> current_most_likely_trans =
     std::make_pair(Vector2f(x_min, y_min), rotation);
   double current_most_likely_prob = -INFINITY;
 
   for (double x_trans = x_min + EPSILON; x_trans < x_max; x_trans += resolution) {
     for (double y_trans = y_min + EPSILON; y_trans < y_max; y_trans += resolution) {
-      // If we are excluding scans, and this is a banned scan. Then don't
-      // consider it.
-      if (excluding && excluded[pointcloud_b_cost.AbsCoords(x_trans, y_trans)]) {
-        continue;
-      }
       // Otherwise, get the probability / cost of this scan.
       double probability =
         CalculatePointcloudCost(
@@ -178,19 +171,17 @@ GetProbAndTransformation(const vector<Vector2f>& rotated_pointcloud_a,
 pair<double, pair<Eigen::Vector2f, float>>
 CorrelativeScanMatcher::
 GetTransformation(const vector<Vector2f>& pointcloud_a,
-                  const vector<Vector2f>& pointcloud_b) {
+                  const vector<Vector2f>& pointcloud_b,
+                  const double rotation_min,
+                  const double rotation_max) {
   double current_probability = 1.0;
   double best_probability = -INFINITY;
   pair<Eigen::Vector2f, float> best_transformation;
-  uint64_t low_res_width = (range_ * 2.0) / low_res_ + 1;
-  boost::dynamic_bitset<> excluded_low_res(low_res_width * low_res_width);
-  // Dumby value, never used.
-  boost::dynamic_bitset<> excluded_high_res(0);
   const LookupTable pointcloud_b_cost_high_res =
     GetLookupTableHighRes(pointcloud_b);
   const LookupTable pointcloud_b_cost_low_res =
     GetLookupTableLowRes(pointcloud_b_cost_high_res);
-  vector<pair<double, pair<Vector2f, float>>> low_res_costs = MemoizeLowRes(pointcloud_a, pointcloud_b_cost_low_res, low_res_, trans_range_, 0, 2 * M_PI);
+  vector<pair<double, pair<Vector2f, float>>> low_res_costs = MemoizeLowRes(pointcloud_a, pointcloud_b_cost_low_res, low_res_, trans_range_, rotation_min, rotation_max);
   #if DEBUG
   std::cout << "Low Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_low_res) << std::endl;
   std::cout << "High Res Cost: " << CalculatePointcloudCost(RotatePointcloud(pointcloud_a, 3.14), 0.7, -0.2, pointcloud_b_cost_high_res) << std::endl;
@@ -247,14 +238,6 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
     CHECK_LT(y_min_high_res, trans_range_);
     CHECK_GT(x_max_high_res, -trans_range_);
     CHECK_GT(y_max_high_res, -trans_range_);
-    double trans_x = best_translation_low_res.x();
-    double trans_y = best_translation_low_res.y();
-    if (excluded_low_res[pointcloud_b_cost_low_res.AbsCoords(trans_x,
-                                                             trans_y)]) {
-      return std::make_pair(best_probability, best_transformation);
-    }
-    excluded_low_res.set(pointcloud_b_cost_low_res.AbsCoords(trans_x,
-                                                             trans_y), true);
     auto prob_and_trans_high_res =
       GetProbAndTransformation(rotated_pointcloud_a,
                                pointcloud_b_cost_high_res,
@@ -263,9 +246,7 @@ GetTransformation(const vector<Vector2f>& pointcloud_a,
                                x_max_high_res,
                                y_min_high_res,
                                y_max_high_res,
-                               best_rotation_low_res,
-                               false,
-                               excluded_high_res);
+                               best_rotation_low_res);
     #if DEBUG
     if (prob_and_trans_high_res.first > best_probability_low_res) {
       for (double y = y_min_high_res; y < y_max_high_res; y += high_res_) {
@@ -296,13 +277,16 @@ pair<double, pair<Eigen::Vector2f, float>>
 CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                           const vector<Vector2f>& pointcloud_b,
                                           const double rotation_a,
-                                          const double rotation_b) {
+                                          const double rotation_b,
+                                          const double rotation_restriction) {
   const vector<Vector2f>& rotated_pointcloud_a =
     RotatePointcloud(pointcloud_a, rotation_a);
   const vector<Vector2f>& rotated_pointcloud_b =
     RotatePointcloud(pointcloud_b, rotation_b);
   return GetTransformation(rotated_pointcloud_a,
-                           rotated_pointcloud_b);
+                           rotated_pointcloud_b,
+                           -(rotation_restriction / 2),
+                           rotation_restriction / 2);
 }
 
 // Calculates full uncertainty (including rotation)
