@@ -1,7 +1,7 @@
 PROJECT(correlative_scan_matcher)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
-MESSAGE(STATUS "Compiling Lidar SLAM Implementation")
+MESSAGE(STATUS "Compiling Correlative Scan Matching Implementation")
 MESSAGE(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 MESSAGE(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 MESSAGE(STATUS "Arch: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -9,7 +9,7 @@ MESSAGE(STATUS "Arch: ${CMAKE_SYSTEM_PROCESSOR}")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Werror ")
 
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9)
-    SET(CMAKE_CXX_FLAGS "-Wno-deprecated-copy")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy")
 ENDIF()
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "Release")
@@ -33,6 +33,10 @@ IF (CSM_LIBRARY)
     SET(libs gflags glog boost_system m X11 OpenMP::OpenMP_CXX)
     ADD_LIBRARY(csm src/CorrelativeScanMatcher.cc)
     TARGET_LINK_LIBRARIES(csm ${LIBS})
+    SET_TARGET_PROPERTIES(csm PROPERTIES
+                          COMPILE_FLAGS ${CMAKE_CXX_FLAGS})
+    MESSAGE(STATUS "CSM Building as library")
+    MESSAGE(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
 ELSE()
     INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
     
