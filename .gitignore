@@ -1,4 +1,5 @@
 bin/
+lib/
 build/
 msg_gen/
 src/CorrelativeScanMatching/
