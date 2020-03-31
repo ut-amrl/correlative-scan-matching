@@ -7,6 +7,7 @@
 #include "Eigen/Dense"
 
 #include "./CImg.h"
+#include "./math_util.h"
 
 #define UNCERTAINTY_USELESS_THRESHOLD log(1e-4)
 #define DEBUG false
@@ -274,14 +275,11 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                           const double rotation_a,
                                           const double rotation_b,
                                           const double rotation_restriction) {
-  const vector<Vector2f>& rotated_pointcloud_a =
-    RotatePointcloud(pointcloud_a, rotation_a);
-  const vector<Vector2f>& rotated_pointcloud_b =
-    RotatePointcloud(pointcloud_b, rotation_b);
-  return GetTransformation(rotated_pointcloud_a,
-                           rotated_pointcloud_b,
-                           -(rotation_restriction / 2),
-                           rotation_restriction / 2);
+  double angle_dist = math_util::AngleDiff(rotation_a, rotation_b);
+  return GetTransformation(pointcloud_a,
+                           pointcloud_b,
+                           math_util::AngleMod(angle_dist - rotation_restriction / 2),
+                           math_util::AngleMod(angle_dist + rotation_restriction / 2));
 }
 
 // Calculates full uncertainty (including rotation)
