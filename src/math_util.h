@@ -33,18 +33,16 @@
 // MustCheckReturn lets a function emit a warning if its return value
 // isn't used
 #if __GNUC__ >= 3
-# define UnusedVar __attribute__((unused))
-# define MustUseResult __attribute__((warn_unused_result))
+#define UnusedVar __attribute__((unused))
+#define MustUseResult __attribute__((warn_unused_result))
 #else
-# define UnusedVar
-# define MustUseResult
+#define UnusedVar
+#define MustUseResult
 #endif
-
 
 namespace math_util {
 
-inline bool NormalsSimilar(const Eigen::Vector2f& n1,
-                           const Eigen::Vector2f& n2,
+inline bool NormalsSimilar(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2,
                            float max_cosine_value) {
   return (fabs(n1.dot(n2)) > max_cosine_value);
 }
@@ -52,15 +50,13 @@ inline bool NormalsSimilar(const Eigen::Vector2f& n1,
 // Returns angle within [-PI,PI]
 template <class real>
 inline real angle_mod(real angle) MustUseResult;
-  
+
 template <class real>
-real angle_mod(real angle)
-{
+real angle_mod(real angle) {
   angle -= M_2PI * rint(angle / M_2PI);
 
-  return(angle);
+  return (angle);
 }
-
 
 // Convert angle in radians to degrees.
 template <typename T>

@@ -2,14 +2,14 @@
 #define SRC_CORRELATIVESCANMATCHER_H_
 
 #include <glog/logging.h>
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 
 #include <memory>
-#include <string>
-#include <vector>
 #include <mutex>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include <boost/dynamic_bitset.hpp>
 #include "Eigen/Dense"
@@ -19,21 +19,20 @@
 #define DEFAULT_GAUSSIAN_SIGMA 4
 #define MIN_VALUE_FOR_LOOKUP 1E-10
 
-using std::vector;
-using std::pair;
-using Eigen::Vector2f;
 using cimg_library::CImg;
+using Eigen::Vector2f;
+using std::pair;
+using std::vector;
 
 struct LookupTable {
   uint64_t width;
   uint64_t height;
   double resolution;
   CImg<double> values;
-  LookupTable(const double range,
-              const double resolution) :
-              width(floor((range * 2.0) / resolution)),
-              height(floor((range * 2.0) / resolution)),
-              resolution(resolution) {
+  LookupTable(const double range, const double resolution)
+      : width(floor((range * 2.0) / resolution)),
+        height(floor((range * 2.0) / resolution)),
+        resolution(resolution) {
     // Construct a width x height image, with only 1 z level.
     // And, only one double per color with default value 0.0.
     values = CImg<double>(width, height, 1, 1, 0.0);
@@ -77,29 +76,19 @@ struct LookupTable {
     values(x, y) = value;
   }
 
-  void normalize() {
-    values = values.normalize(0, 1);
-  }
+  void normalize() { values = values.normalize(0, 1); }
 
   void GaussianBlur(const double sigma) {
     values = values.blur(sigma, sigma, 0, true, true);
   }
-  
-  void clear() {
-    values = values.clear();
-  }
 
-  void GaussianBlur() {
-    GaussianBlur(DEFAULT_GAUSSIAN_SIGMA);
-  }
+  void clear() { values = values.clear(); }
 
-  CImg<double> GetDebugImage() const {
-    return values;
-  }
+  void GaussianBlur() { GaussianBlur(DEFAULT_GAUSSIAN_SIGMA); }
 
-  double MaxArea(double start_x,
-                 double start_y,
-                 double end_x,
+  CImg<double> GetDebugImage() const { return values; }
+
+  double MaxArea(double start_x, double start_y, double end_x,
                  double end_y) const {
     uint64_t sx = convertX(start_x);
     uint64_t sy = convertY(start_y);
@@ -122,49 +111,44 @@ struct LookupTable {
 
 class CorrelativeScanMatcher {
  public:
-    CorrelativeScanMatcher(double scanner_range,
-                           double trans_range,
-                           double low_res,
-                           double high_res)
-    : range_(scanner_range), trans_range_(trans_range), low_res_(low_res), high_res_(high_res) {}
-    pair<double, pair<Eigen::Vector2f, float>>
-    GetTransformation(const vector<Vector2f>& pointcloud_a,
-                      const vector<Vector2f>& pointcloud_b,
-                      const double rotation_min = 0,
-                      const double rotation_max = 2 * M_PI);
-    pair<double, pair<Eigen::Vector2f, float>>
-    GetTransformation(const vector<Vector2f>& pointcloud_a,
-                      const vector<Vector2f>& pointcloud_b,
-                      const double rotation_a,
-                      const double rotation_b,
-                      const double rotation_restriction);
-    Eigen::Matrix3f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
-                                         const vector<Vector2f>& pointcloud_b);
-    Eigen::Matrix2f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
-                                         const vector<Vector2f>& pointcloud_b,
-                                         const double rotation);
-    // Computes the local uncertainty of the *last* scan in the provided vector of point clouds, relative to the previous ones
-    std::pair<double, double> GetLocalUncertaintyStats(const vector<vector<Vector2f>>& comparisonClouds, const vector<Vector2f> targetCloud);
-    LookupTable GetLookupTableHighRes(const vector<Vector2f>& pointcloud);
-    LookupTable GetLookupTableLowRes(const LookupTable& high_res_table);
+  CorrelativeScanMatcher(double scanner_range, double trans_range,
+                         double low_res, double high_res)
+      : range_(scanner_range),
+        trans_range_(trans_range),
+        low_res_(low_res),
+        high_res_(high_res) {}
+  pair<double, pair<Eigen::Vector2f, float>> GetTransformation(
+      const vector<Vector2f>& pointcloud_a,
+      const vector<Vector2f>& pointcloud_b, const double rotation_min = 0,
+      const double rotation_max = 2 * M_PI);
+  pair<double, pair<Eigen::Vector2f, float>> GetTransformation(
+      const vector<Vector2f>& pointcloud_a,
+      const vector<Vector2f>& pointcloud_b, const double rotation_a,
+      const double rotation_b, const double rotation_restriction);
+  Eigen::Matrix3f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+                                       const vector<Vector2f>& pointcloud_b);
+  Eigen::Matrix2f GetUncertaintyMatrix(const vector<Vector2f>& pointcloud_a,
+                                       const vector<Vector2f>& pointcloud_b,
+                                       const double rotation);
+  // Computes the local uncertainty of the *last* scan in the provided vector of
+  // point clouds, relative to the previous ones
+  std::pair<double, double> GetLocalUncertaintyStats(
+      const vector<vector<Vector2f>>& comparisonClouds,
+      const vector<Vector2f> targetCloud);
+  LookupTable GetLookupTableHighRes(const vector<Vector2f>& pointcloud);
+  LookupTable GetLookupTableLowRes(const LookupTable& high_res_table);
 
  private:
-    LookupTable GetLookupTable(const vector<Vector2f>& pointcloud,
-                               double resolution);
-    pair<double, pair<Eigen::Vector2f, float>>
-      GetProbAndTransformation(const vector<Vector2f>& pointcloud_a,
-                               const LookupTable& pointcloud_b_cost,
-                               double resolution,
-                               double x_min,
-                               double x_max,
-                               double y_min,
-                               double y_max,
-                               double rotation);
-    double range_;
-    double trans_range_;
-    double low_res_;
-    double high_res_;
+  LookupTable GetLookupTable(const vector<Vector2f>& pointcloud,
+                             double resolution);
+  pair<double, pair<Eigen::Vector2f, float>> GetProbAndTransformation(
+      const vector<Vector2f>& pointcloud_a,
+      const LookupTable& pointcloud_b_cost, double resolution, double x_min,
+      double x_max, double y_min, double y_max, double rotation);
+  double range_;
+  double trans_range_;
+  double low_res_;
+  double high_res_;
 };
-
 
 #endif  // SRC_CORRELATIVESCANMATCHER_H_
