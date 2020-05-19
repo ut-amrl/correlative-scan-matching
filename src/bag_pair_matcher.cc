@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "CorrelativeScanMatcher.h"
-#include "Eigen/Dense"
+#include "eigen3/Eigen/Dense"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "pointcloud_helpers.h"

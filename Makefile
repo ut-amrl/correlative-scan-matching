@@ -9,8 +9,8 @@ C_compiler=/usr/bin/gcc
 CXX_compiler=/usr/bin/g++
 
 # acceptable build_types: Release/Debug/Profile
-# build_type=Release
-build_type=Debug
+build_type=Release
+# build_type=Debug
 
 all: build/CMakeLists.txt.copy
 	$(info Build_type is [${build_type}])

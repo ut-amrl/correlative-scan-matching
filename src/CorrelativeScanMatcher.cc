@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <boost/dynamic_bitset.hpp>
-#include "Eigen/Dense"
+#include "eigen3/Eigen/Dense"
 
 #include "./CImg.h"
 #include "./math_util.h"
