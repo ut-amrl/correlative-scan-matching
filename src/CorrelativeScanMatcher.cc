@@ -251,10 +251,16 @@ CorrelativeScanMatcher::GetTransformation(const vector<Vector2f>& pointcloud_a,
                                           const double rotation_b,
                                           const double rotation_restriction) {
   double angle_dist = math_util::AngleDiff(rotation_a, rotation_b);
+  double rotation_min = math_util::AngleMod(angle_dist - rotation_restriction / 2);
+  double rotation_max = math_util::AngleMod(angle_dist + rotation_restriction / 2);
+  if (rotation_max < rotation_min) {
+    rotation_max += 2 * M_PI;
+  }
+
   return GetTransformation(
       pointcloud_a, pointcloud_b,
-      math_util::AngleMod(angle_dist - rotation_restriction / 2),
-      math_util::AngleMod(angle_dist + rotation_restriction / 2));
+      rotation_min,
+      rotation_max);
 }
 
 // Calculates full uncertainty (including rotation)
