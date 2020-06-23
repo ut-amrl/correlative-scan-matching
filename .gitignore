@@ -10,3 +10,6 @@ uncertainty_info*/
 msg_gen/*
 *.so
 *.npy
+correlative_scan_bag_avg
+correlative_scan_match_pair
+src/csm/
