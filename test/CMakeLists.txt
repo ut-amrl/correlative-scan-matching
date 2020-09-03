@@ -6,7 +6,7 @@ macro(package_add_test TESTNAME)
     add_dependencies(${TESTNAME} ${catkin_EXPORTED_TARGETS})
 endmacro()
 
-if (CATKIN_ENABLED_TESTING)
+if (CATKIN_ENABLE_TESTING)
   catkin_add_gtest(correlative_scan_matcher_tests correlative_scan_matcher_tests.cc ../src/CorrelativeScanMatcher.cc)
   target_link_libraries(correlative_scan_matcher ${catkin_LIBRARIES})
   add_dependencies(correlative_scan_matcher ${catkin_EXPORTED_TARGETS})
